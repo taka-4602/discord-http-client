@@ -1359,7 +1359,7 @@
                             align-items: center;
                         ">
                             <div class="message-avatar" style="width: 24px; height: 24px; font-size: 12px; margin-right: 8px;">
-                                ${this.renderAvatar(refMsg.author, 24)}
+                                ${this.renderAvatar(refMsg.author, 512)}
                             </div>
                             <div>
                                 <strong>${refAuthor}</strong>
@@ -1371,7 +1371,7 @@
 
                 if (message.content) {
                     const urlRegex = /(https?:\/\/[^\s]+)/g;
-                    const sanitizedContent = message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const sanitizedContent = message.content.replace(/</g, '<').replace(/>/g, '>');
                     const linkedContent = sanitizedContent.replace(urlRegex, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
                     parts.push(`<div class="message-text-content">${linkedContent}</div>`);
                 }
@@ -1393,7 +1393,7 @@
                         
                         if (embed.title) {
                             const plainTextTitle = embed.title.replace(/<[^>]*>/g, '');
-                            const sanitizedTitle = plainTextTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            const sanitizedTitle = plainTextTitle.replace(/</g, '<').replace(/>/g, '>');
                             const finalTitleHtml = embed.url 
                                 ? `<a href="${embed.url}" target="_blank" rel="noopener noreferrer">${sanitizedTitle}</a>`
                                 : sanitizedTitle;
@@ -1401,7 +1401,7 @@
                         }
                         
                         if (embed.description) {
-                            embedParts.push(`<div class="embed-description">${embed.description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
+                            embedParts.push(`<div class="embed-description">${embed.description.replace(/</g, '<').replace(/>/g, '>')}</div>`);
                         }
 
                         if (embed.image) {
@@ -1550,7 +1550,7 @@
                         const messageClass = `message ${this.recentlyAddedMessageIds.has(m.id) ? 'new-message' : ''}`;
                         return `
                         <div class="${messageClass}" id="message-${m.id}" data-message-id="${m.id}" data-author-id="${m.author.id}">
-                            <div class="message-avatar">${this.renderAvatar(m.author, 40)}</div>
+                            <div class="message-avatar">${this.renderAvatar(m.author, 512)}</div>
                             <div class="message-content">
                                 <div class="message-header">
                                     <span class="message-author">${m.author.global_name || m.author.username}${m.author.global_name ? ` (${m.author.username})` : ''}</span>
