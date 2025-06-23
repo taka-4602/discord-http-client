@@ -1062,10 +1062,10 @@
                 this.saveCacheToStorage(); 
             }
             loadMessagesFromCache(channelId) { return this.messageCache[`${channelId}`] || []; }
-            getAvatarUrl(user, size = 32) { return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=${size}` : null; }
-            getServerIconUrl(server, size = 32) { return server?.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.webp?size=${size}` : null; }
-            renderAvatar(user, size = 32) { const url = this.getAvatarUrl(user, size); return url ? `<img src="${url}" alt="${user?.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(user?.username)}</span>` : `<span>${this.getInitials(user?.username)}</span>`; }
-            renderServerIcon(server, size = 32) { const url = this.getServerIconUrl(server, size); return url ? `<img src="${url}" alt="${server.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(server.name)}</span>` : `<span>${this.getInitials(server.name)}</span>`; }
+            getAvatarUrl(user, size = 512) { return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=${size}` : null; }
+            getServerIconUrl(server, size = 512) { return server?.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.webp?size=${size}` : null; }
+            renderAvatar(user, size = 512) { const url = this.getAvatarUrl(user, size); return url ? `<img src="${url}" alt="${user?.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(user?.username)}</span>` : `<span>${this.getInitials(user?.username)}</span>`; }
+            renderServerIcon(server, size = 512) { const url = this.getServerIconUrl(server, size); return url ? `<img src="${url}" alt="${server.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(server.name)}</span>` : `<span>${this.getInitials(server.name)}</span>`; }
 
             async authenticate(token) {
                 this.isLoading = true; this.error = null; this.render();
