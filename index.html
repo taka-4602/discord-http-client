@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord HTTP クライアント</title>
+    <style>
+        :root {
+            --background-primary: #1e1f22;
+            --background-secondary: #2b2d31;
+            --background-tertiary: #111214;
+            --header-primary: #f2f3f5;
+            --text-primary: #dbdee1;
+            --text-muted: #949ba4;
+            --interactive-normal: #b5bac1;
+            --interactive-hover: #dcddde;
+            --interactive-active: #ffffff;
+            --button-primary-bg: #5865f2;
+            --button-primary-hover-bg: #4752c4;
+            --button-secondary-bg: #4e5058;
+            --button-secondary-hover-bg: #5a5c63;
+            --danger-color: #f23f42;
+            --embed-background: #2b2d31;
+            --skeleton-base: #2b2d31;
+            --skeleton-highlight: #35373c;
+        }
+
+        @keyframes fadeInFromBottom {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow: hidden;
+            height: 100%;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-primary);
+            color: var(--text-primary);
+        }
+
+        #app {
+            height: 100%;
+        }
+
+        .container {
+            display: flex;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            min-width: 200px;
+            max-width: 500px;
+            height: 100%;
+            background-color: var(--background-secondary);
+            border-right: 1px solid var(--background-tertiary);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .resizer {
+            width: 4px;
+            cursor: col-resize;
+            background: var(--background-tertiary);
+            flex-shrink: 0;
+            transition: background-color 0.15s ease;
+        }
+        .resizer:hover {
+            background: var(--button-primary-bg);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--background-tertiary);
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--header-primary);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.02em;
+        }
+
+        .dm-item, .server-item, .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 2px;
+            transition: background-color 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .dm-item:hover, .server-item:hover, .channel-item:hover {
+            background-color: #35373c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .dm-item.active, .channel-item.active {
+            background-color: #404249;
+            color: var(--interactive-active);
+        }
+        
+        .server-item.active {
+            background-color: #35373c;
+        }
+
+        .channel-list {
+            padding-left: 20px;
+            margin-top: 4px;
+            border-left: 1px solid #40444b;
+            margin-left: 16px;
+        }
+
+        .channel-item {
+            padding: 6px 10px;
+        }
+
+        .channel-name {
+            color: var(--interactive-normal);
+            font-size: 14px;
+        }
+
+        .channel-item.active .channel-name {
+            color: var(--interactive-active);
+            font-weight: 500;
+        }
+
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--button-primary-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+            font-size: 14px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-info {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .username {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--interactive-hover);
+        }
+
+        .status {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-width: 0;
+        }
+
+        .login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #43454b 0%, #1e1f22 100%);
+        }
+
+        .login-form {
+            background-color: var(--background-secondary);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .login-form.initial-entry {
+            animation: fadeInFromBottom 0.5s ease-out forwards;
+        }
+
+        .login-warning {
+            background-color: rgba(242, 63, 66, 0.1);
+            border: 1px solid var(--danger-color);
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+            color: var(--header-primary);
+        }
+
+        .login-subtitle {
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            letter-spacing: 0.02em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--background-primary);
+            border: 1px solid var(--background-tertiary);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--button-primary-bg);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--button-primary-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--button-primary-hover-bg);
+            animation: pulse 0.5s infinite alternate;
+        }
+        
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background-color: var(--button-secondary-bg);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .btn-secondary {
+            background-color: var(--button-secondary-bg);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--button-secondary-hover-bg);
+        }
+
+        .btn-header {
+            width: auto;
+            padding: 6px 12px;
+            margin-left: 8px;
+        }
+
+        .chat-header {
+            height: 48px;
+            background-color: var(--background-primary);
+            border-bottom: 1px solid var(--background-tertiary);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            flex-shrink: 0;
+            /* Added for responsive buttons */
+            justify-content: space-between; 
+        }
+        
+        .chat-header-actions { /* New div for buttons */
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            display: none;
+        }
+
+        .chat-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--header-primary);
+            margin-right: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background-color: var(--background-primary);
+            min-height: 0;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 16px;
+            padding: 8px 0;
+            opacity: 1;
+            position: relative;
+        }
+        
+        .message.new-message {
+            animation: fadeInFromBottom 0.3s ease-out forwards;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--button-primary-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 16px;
+            font-size: 16px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .message-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 4px;
+        }
+
+        .message-author {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--header-primary);
+            margin-right: 8px;
+        }
+
+        .message-timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .message-text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        .message-text-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        
+        .message-text-content a {
+            color: #00a8fc;
+            text-decoration: none;
+        }
+        .message-text-content a:hover {
+            text-decoration: underline;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            background-color: var(--background-primary);
+            border-top: 1px solid var(--background-tertiary);
+            flex-shrink: 0;
+        }
+
+        #sendMessageForm {
+            display: flex;
+            align-items: stretch;
+            background-color: var(--background-secondary);
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .message-input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            padding: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            min-width: 0;
+        }
+        
+        .send-btn {
+            background-color: var(--button-primary-bg);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            flex-shrink: 0;
+        }
+        
+        .send-btn:hover:not(:disabled) {
+            background-color: var(--button-primary-hover-bg);
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        .send-btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-inline {
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .error {
+            background-color: var(--danger-color);
+            color: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            animation: popIn 0.3s ease-out forwards;
+        }
+
+        .no-messages {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 40px;
+            animation: fadeInFromBottom 0.5s ease-out forwards;
+        }
+
+        .skeleton-message { display: flex; margin-bottom: 24px; padding: 8px 0; }
+        .skeleton-avatar { width: 40px; height: 40px; border-radius: 50%; margin-right: 16px; flex-shrink: 0; }
+        .skeleton-content { flex: 1; }
+        .skeleton-line { height: 1em; border-radius: 4px; margin-bottom: 10px; }
+        .skeleton-line:last-child { margin-bottom: 0; }
+        .skeleton-avatar, .skeleton-line {
+            background-image: linear-gradient(to right, var(--skeleton-base) 0%, var(--skeleton-highlight) 20%, var(--skeleton-base) 40%, var(--skeleton-base) 100%);
+            background-repeat: no-repeat;
+            background-size: 2000px 104px;
+            animation: shimmer 2.5s linear infinite;
+        }
+
+        .attachments-container {
+            margin-top: 8px;
+        }
+        .attachment-link {
+            display: inline-block;
+            background-color: var(--background-secondary);
+            border: 1px solid var(--background-tertiary);
+            border-radius: 4px;
+            padding: 8px 12px;
+            color: var(--interactive-normal);
+            text-decoration: none;
+            font-size: 13px;
+            transition: background-color 0.15s ease;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .attachment-link:hover {
+            background-color: var(--background-tertiary);
+            color: var(--interactive-hover);
+        }
+        
+        .embed {
+            background-color: var(--embed-background);
+            border-left: 4px solid var(--text-muted);
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 8px;
+            max-width: 520px;
+        }
+
+        .embed.new-embed {
+            animation: fadeInFromBottom 0.3s ease-out forwards;
+        }
+
+        .embed-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+        .embed-title a {
+            color: #00a8fc;
+            text-decoration: none;
+        }
+        .embed-title a:hover {
+            text-decoration: underline;
+        }
+        .embed-description {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+        .embed-image {
+            margin-top: 12px;
+        }
+        .embed-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #232428;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--button-primary-bg);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--button-primary-hover-bg);
+        }
+
+        .cache-info {
+            padding: 8px 16px;
+            border-top: 1px solid var(--background-tertiary);
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cache-status {
+            color: #2dc770;
+        }
+
+        .cache-actions button {
+            background: none;
+            border: 1px solid var(--button-secondary-bg);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-left: 8px;
+        }
+
+        .cache-actions button:hover {
+            background-color: var(--button-secondary-bg);
+            color: var(--text-primary);
+            animation: pulse 0.5s infinite alternate;
+        }
+        .cache-actions button:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 4px 0;
+            user-select: none;
+        }
+        
+        .section-header:hover {
+            opacity: 0.8;
+        }
+        
+.collapse-icon {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform 0.15s ease;
+        }
+        
+        .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsible-list {
+            overflow: hidden;
+            transition: max-height 0.25s ease-out;
+            max-height: 9999px;
+        }
+        
+        .collapsible-list.collapsed {
+            max-height: 0;
+        }
+
+        .context-menu {
+            position: absolute;
+            background-color: var(--background-secondary);
+            border: 1px solid var(--background-tertiary);
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            list-style: none;
+            padding: 4px 0;
+            min-width: 120px;
+        }
+
+        .context-menu li {
+            padding: 8px 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: background-color 0.15s ease;
+        }
+
+        .context-menu li:hover {
+            background-color: var(--button-primary-bg);
+            color: white;
+        }
+
+        .context-menu li.danger:hover {
+            background-color: var(--danger-color);
+        }
+
+        @media (max-width: 768px) {
+            .resizer {
+                display: none;
+            }
+
+            .container {
+                display: block;
+            }
+            
+            .sidebar {
+                width: 100% !important;
+                min-width: unset;
+                max-width: unset;
+            }
+
+            .sidebar, .main-content {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                transition: transform 0.3s ease-in-out;
+            }
+
+            .sidebar {
+                z-index: 10;
+                transform: translateX(0);
+                border-right: none;
+            }
+            
+            .main-content {
+                z-index: 20;
+                transform: translateX(100%);
+            }
+
+            .container.chat-visible .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .container.chat-visible .main-content {
+                transform: translateX(0);
+            }
+            
+            .back-btn {
+                display: block;
+                background: none;
+                border: none;
+                color: var(--header-primary);
+                font-size: 24px;
+                font-weight: 500;
+                cursor: pointer;
+                padding: 0;
+                margin-right: 16px;
+            }
+
+            .chat-header {
+                /* Ensure buttons wrap if space is limited */
+                flex-wrap: wrap; 
+                height: auto; /* Adjust height dynamically based on content */
+                min-height: 48px; /* Ensure minimum height */
+                padding: 8px 16px; /* Add vertical padding */
+            }
+
+            .chat-title {
+                /* Allow title to take less space if buttons are present */
+                flex-grow: 1; 
+                margin-right: 8px; /* Reduce margin */
+            }
+
+            .btn-header {
+                padding: 5px 8px;
+                font-size: 12px;
+                margin-left: 6px;
+                /* Add margin for spacing between buttons */
+                margin-bottom: 4px; 
+            }
+
+            .chat-header-actions { /* Ensure buttons stay together */
+                display: flex;
+                flex-wrap: wrap; /* Allow buttons to wrap to next line if needed */
+                justify-content: flex-end; /* Align buttons to the right */
+                margin-left: auto; /* Push buttons to the right */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        class DiscordClient {
+            constructor() {
+                this.token = null;
+                this.user = null;
+                this.dms = [];
+                this.servers = [];
+                this.selectedChannel = null;
+                this.messages = [];
+                this.isLoading = false;
+                this.isFetchingOlder = false;
+                this.isSending = false;
+                this.error = null;
+                this.messageCache = {};
+                this.userCache = {};
+                this.serverChannelsCache = {};
+                this.expandedServers = new Set();
+                this.isDmCollapsed = false;
+                this.isAdminServersCollapsed = false;
+                this.isOtherServersCollapsed = false;
+                this.recentlyAddedMessageIds = new Set();
+                this.scrollToBottomOnNextRender = false;
+                this.loadCacheFromStorage();
+                this.init();
+            }
+
+            init() {
+                this.renderLoginScreen();
+                const loginFormElement = document.querySelector('.login-form');
+                if (loginFormElement) {
+                    loginFormElement.classList.add('initial-entry');
+                }
+            }
+            
+            toggleDmCollapse() {
+                this.isDmCollapsed = !this.isDmCollapsed;
+                this.render();
+            }
+            toggleAdminServersCollapse() {
+                this.isAdminServersCollapsed = !this.isAdminServersCollapsed;
+                this.render();
+            }
+            toggleOtherServersCollapse() {
+                this.isOtherServersCollapsed = !this.isOtherServersCollapsed;
+                this.render();
+            }
+            
+            renderSidebarContent() {
+                const dmListClass = this.isDmCollapsed ? 'collapsible-list collapsed' : 'collapsible-list';
+                const dmIconClass = this.isDmCollapsed ? 'collapse-icon collapsed' : 'collapse-icon';
+
+                const hasAdmin = (server) => (server.permissions & 0x8) === 0x8 || (server.permissions & 0x20) === 0x20;
+                const adminServers = this.servers.filter(hasAdmin);
+                const otherServers = this.servers.filter(s => !hasAdmin(s));
+
+                const adminListClass = this.isAdminServersCollapsed ? 'collapsible-list collapsed' : 'collapsible-list';
+                const adminIconClass = this.isAdminServersCollapsed ? 'collapse-icon collapsed' : 'collapse-icon';
+                const otherListClass = this.isOtherServersCollapsed ? 'collapsible-list collapsed' : 'collapsible-list';
+                const otherIconClass = this.isOtherServersCollapsed ? 'collapse-icon collapsed' : 'collapse-icon';
+
+                const renderServer = (server) => `
+                    <div class="server-item-container">
+                        <div class="server-item ${this.expandedServers.has(server.id) ? 'active' : ''}" onclick="client.toggleServer('${server.id}')">
+                            <div class="avatar">${this.renderServerIcon(server)}</div>
+                            <div class="user-info">
+                                <div class="username">${server.name}</div>
+                                <div class="status">${this.expandedServers.has(server.id) ? '▲ 閉じる' : '▼ 開く'}</div>
+                            </div>
+                        </div>
+                        ${this.expandedServers.has(server.id) ? `
+                            <div class="channel-list">
+                                ${(this.serverChannelsCache[server.id] || []).map(channel => `
+                                    <div class="channel-item ${this.selectedChannel?.id === channel.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')}, 'server_channel')">
+                                        <span class="channel-name"># ${channel.name}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                return `
+                    <div class="section-header" onclick="client.toggleDmCollapse()">
+                        <div class="section-title">ダイレクトメッセージ</div>
+                        <span class="${dmIconClass}">▼</span>
+                    </div>
+                    <div class="${dmListClass}">
+                        ${this.dms.map(dm => `
+                            <div class="dm-item ${this.selectedChannel?.id === dm.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(dm).replace(/"/g, '&quot;')}, 'dm')">
+                                <div class="avatar">${dm.recipients?.[0] ? this.renderAvatar(dm.recipients[0]) : this.getInitials('DM')}</div>
+                                <div class="user-info">
+                                    <div class="username">${dm.recipients?.[0] ? (dm.recipients[0].global_name || dm.recipients[0].username) + (dm.recipients[0].global_name ? ` (${dm.recipients[0].username})` : '') : 'DM Group'}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="section-header" style="margin-top: 24px;" onclick="client.toggleAdminServersCollapse()">
+                        <div class="section-title">管理サーバー</div>
+                        <span class="${adminIconClass}">▼</span>
+                    </div>
+                    <div class="${adminListClass}">
+                        ${adminServers.map(renderServer).join('')}
+                    </div>
+
+                    <div class="section-header" style="margin-top: 16px;" onclick="client.toggleOtherServersCollapse()">
+                        <div class="section-title">その他のサーバー</div>
+                        <span class="${otherIconClass}">▼</span>
+                    </div>
+                    <div class="${otherListClass}">
+                        ${otherServers.map(renderServer).join('')}
+                    </div>
+                `;
+            }
+
+            
+            loadCacheFromStorage() { try { const m = localStorage.getItem('discord_message_cache'); const u = localStorage.getItem('discord_user_cache'); if (m) this.messageCache = JSON.parse(m); if (u) this.userCache = JSON.parse(u); } catch (e) { console.error('キャッシュ読み込みエラー:', e); } }
+            saveCacheToStorage() { try { localStorage.setItem('discord_message_cache', JSON.stringify(this.messageCache)); localStorage.setItem('discord_user_cache', JSON.stringify(this.userCache)); } catch (e) { console.error('キャッシュ保存エラー:', e); } }
+            clearCache() { 
+                const messageBox = document.getElementById('customMessageBox');
+                const messageText = document.getElementById('messageBoxText');
+                const confirmBtn = document.getElementById('messageBoxConfirmBtn');
+                const cancelBtn = document.getElementById('messageBoxCancelBtn');
+
+                messageText.textContent = 'すべてのキャッシュ済みデータを削除しますか？';
+                confirmBtn.onclick = () => {
+                    this.messageCache = {}; this.userCache = {}; localStorage.removeItem('discord_message_cache'); localStorage.removeItem('discord_user_cache'); if (this.selectedChannel) this.messages = []; this.render();
+                    messageBox.style.display = 'none';
+                };
+                cancelBtn.onclick = () => {
+                    messageBox.style.display = 'none';
+                };
+                cancelBtn.style.display = 'inline-block';
+                messageBox.style.display = 'flex';
+            }
+            
+            exportAllCache() {
+                if (Object.keys(this.messageCache).length === 0) {
+                    const messageBox = document.getElementById('customMessageBox');
+                    const messageText = document.getElementById('messageBoxText');
+                    const confirmBtn = document.getElementById('messageBoxConfirmBtn');
+                    const cancelBtn = document.getElementById('messageBoxCancelBtn');
+
+                    messageText.textContent = 'エクスポートするキャッシュがありません。';
+                    confirmBtn.textContent = 'OK';
+                    confirmBtn.onclick = () => {
+                        messageBox.style.display = 'none';
+                    };
+                    cancelBtn.style.display = 'none';
+                    messageBox.style.display = 'flex';
+                    return;
+                }
+
+                const formattedData = {
+                    guilds: {},
+                    direct_messages: {},
+                    export_info: {
+                        exported_by: this.user.global_name || this.user.username,
+                        export_date: new Date().toISOString()
+                    }
+                };
+
+                for (const channelId in this.messageCache) {
+                    const messages = this.messageCache[channelId];
+                    if (!messages || messages.length === 0) continue;
+
+                    let channelInfo = null;
+                    let type = null;
+                    let guildInfo = null;
+
+                    const dmChannel = this.dms.find(dm => dm.id === channelId);
+                    if (dmChannel) {
+                        channelInfo = dmChannel;
+                        type = 'dm';
+                    } else {
+                        for (const serverId in this.serverChannelsCache) {
+                            const foundChannel = this.serverChannelsCache[serverId].find(ch => ch.id === channelId);
+                            if (foundChannel) {
+                                channelInfo = foundChannel;
+                                guildInfo = this.servers.find(s => s.id === serverId);
+                                type = 'server_channel';
+                                break;
+                            }
+
+                            if (guildInfo) {
+                                const privateChannel = (guildInfo.channels || []).find(ch => ch.id === channelId);
+                                if (privateChannel) {
+                                    channelInfo = privateChannel;
+                                    type = 'server_channel';
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!channelInfo) continue;
+
+                    if (type === 'dm') {
+                        const recipient = channelInfo.recipients?.[0];
+                        formattedData.direct_messages[channelId] = {
+                            recipient_info: recipient ? { id: recipient.id, username: recipient.username, global_name: recipient.global_name } : { name: 'DM Group' },
+                            messages: messages
+                        };
+                    } else if (type === 'server_channel' && guildInfo) {
+                        if (!formattedData.guilds[guildInfo.id]) {
+                            formattedData.guilds[guildInfo.id] = {
+                                guild_name: guildInfo.name,
+                                channels: {}
+                            };
+                        }
+                        formattedData.guilds[guildInfo.id].channels[channelId] = {
+                            channel_name: channelInfo.name,
+                            messages: messages
+                        };
+                    }
+                }
+
+                const blob = new Blob([JSON.stringify(formattedData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `discord_structured_log-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            getCacheSize() { const s = JSON.stringify(this.messageCache).length + JSON.stringify(this.userCache).length; if (s < 1024) return `${s}B`; if (s < 1024 * 1024) return `${(s / 1024).toFixed(1)}KB`; return `${(s / (1024 * 1024)).toFixed(1)}MB`; }
+            saveMessagesToCache(channelId, messages) { 
+                const k = `${channelId}`; 
+                const existingMessages = this.messageCache[k] || []; 
+                const m = new Map(existingMessages.map(msg => [msg.id, msg])); 
+                messages.forEach(msg => { 
+                    m.set(msg.id, msg); 
+                    this.userCache[msg.author.id] = msg.author; 
+                }); 
+                this.messageCache[k] = Array.from(m.values()).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); 
+                this.saveCacheToStorage(); 
+            }
+            loadMessagesFromCache(channelId) { return this.messageCache[`${channelId}`] || []; }
+            getAvatarUrl(user, size = 32) { return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=${size}` : null; }
+            getServerIconUrl(server, size = 32) { return server?.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.webp?size=${size}` : null; }
+            renderAvatar(user, size = 32) { const url = this.getAvatarUrl(user, size); return url ? `<img src="${url}" alt="${user?.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(user?.username)}</span>` : `<span>${this.getInitials(user?.username)}</span>`; }
+            renderServerIcon(server, size = 32) { const url = this.getServerIconUrl(server, size); return url ? `<img src="${url}" alt="${server.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(server.name)}</span>` : `<span>${this.getInitials(server.name)}</span>`; }
+
+            async authenticate(token) {
+                this.isLoading = true; this.error = null; this.render();
+                try {
+                    const res = await fetch('https://discord.com/api/v9/users/@me', { headers: { 'Authorization': token, 'Content-Type': 'application/json' } });
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        throw new Error(errData.message || '認証に失敗しました。トークンを確認してください。');
+                    }
+                    this.user = await res.json(); this.token = token;
+                    await Promise.all([this.fetchDMs(), this.fetchServers()]);
+                } catch (e) { this.error = e.message; } finally { this.isLoading = false; this.render(); }
+            }
+
+            async fetchDMs() {
+                try {
+                    const res = await fetch('https://discord.com/api/v9/users/@me/channels', { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } });
+                    if (res.ok) {
+                        const channels = await res.json();
+                        channels.sort((a, b) => {
+                            const idA = a.last_message_id || '0';
+                            const idB = b.last_message_id || '0';
+                            return idB.localeCompare(idA);
+                        });
+                        this.dms = channels;
+                    }
+                } catch (e) {
+                    console.error('DM取得エラー:', e);
+                }
+            }
+            
+            async fetchServers() {
+                try {
+                    const res = await fetch('https://discord.com/api/v9/users/@me/guilds', { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } });
+                    if (res.ok) this.servers = await res.json();
+                } catch (e) { console.error('サーバー取得エラー:', e); }
+            }
+            
+            async fetchServerChannels(serverId) { if (this.serverChannelsCache[serverId]) return; try { const res = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } }); if (res.ok) this.serverChannelsCache[serverId] = (await res.json()).filter(ch => ch.type === 0 || ch.type === 5); } catch (e) { console.error(`サーバー[${serverId}]のチャンネル取得エラー:`, e); } }
+            
+            async toggleServer(serverId) { if (this.expandedServers.has(serverId)) { this.expandedServers.delete(serverId); } else { this.expandedServers.add(serverId); await this.fetchServerChannels(serverId); } this.render(); }
+
+            async fetchMessages(channelId, { beforeId = null } = {}) {
+                const stateKey = beforeId ? 'isFetchingOlder' : 'isLoading';
+                if (this[stateKey]) return; this[stateKey] = true; this.error = null; this.render();
+                try {
+                    const url = `https://discord.com/api/v9/channels/${channelId}/messages?limit=100${beforeId ? `&before=${beforeId}` : ''}`;
+                    const res = await fetch(url, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } });
+                    if (res.ok) {
+                        const newMessages = await res.json();
+                        if (newMessages.length > 0) { 
+                            this.recentlyAddedMessageIds.clear();
+                            newMessages.forEach(msg => {
+                                if (!this.messages.some(existingMsg => existingMsg.id === msg.id)) {
+                                    this.recentlyAddedMessageIds.add(msg.id);
+                                }
+                            });
+                            this.saveMessagesToCache(channelId, newMessages); 
+                            this.messages = this.loadMessagesFromCache(channelId); 
+
+                            if (!beforeId) {
+                                this.scrollToBottomOnNextRender = true;
+                            }
+                        } 
+                        else if (beforeId) { const btn = document.getElementById('loadMoreBtn'); if (btn) { btn.innerText = 'これ以上ありません'; btn.disabled = true; } }
+                    } else {
+                        const errData = await res.json();
+                        throw new Error(errData.message || 'メッセージの取得に失敗しました');
+                    }
+                } catch (e) { this.error = e.message; console.error('メッセージ取得エラー:', e); } finally { this[stateKey] = false; this.render(); }
+            }
+            
+            selectChannel(channel, type) { 
+                this.selectedChannel = { ...channel, type }; 
+                this.error = null; 
+                this.messages = this.loadMessagesFromCache(channel.id); 
+                this.isFetchingOlder = false; 
+                this.recentlyAddedMessageIds.clear();
+                this.scrollToBottomOnNextRender = true;
+
+                if (this.messages.length === 0) { 
+                    this.fetchMessages(channel.id); 
+                } else { 
+                    this.render(); 
+                } 
+            }
+            
+            unselectChannel() { this.selectedChannel = null; this.render(); }
+            
+            async sendMessage(channelId, content, messageReference = null) {
+                if (!content.trim() || this.isSending) return;
+                this.isSending = true;
+                this.render();
+
+                const payload = { content: content };
+                if (messageReference) {
+                    payload.message_reference = { message_id: messageReference };
+                }
+
+                try {
+                    const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, { method: 'POST', headers: { 'Authorization': this.token, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.message || '送信に失敗');
+                    }
+                    
+                    document.getElementById('messageInput').value = '';
+                    this.replyingTo = null;
+                    this.scrollToBottomOnNextRender = true;
+                    this.render();
+
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    await this.fetchDMs(); 
+                    await this.fetchMessages(channelId);
+
+                } catch (e) {
+                    this.error = e.message;
+                } finally {
+                    this.isSending = false;
+                    this.render();
+                }
+            }
+
+            async deleteMessage(channelId, messageId) {
+                this.showCustomMessageBox('メッセージの削除', '本当にこのメッセージを削除しますか？', false, async () => {
+                    try {
+                        const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages/${messageId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': this.token }
+                        });
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.message || 'メッセージの削除に失敗しました');
+                        }
+                        this.messages = this.messages.filter(m => m.id !== messageId);
+                        const cachedMessages = this.messageCache[`${channelId}`] || [];
+                        this.messageCache[`${channelId}`] = cachedMessages.filter(m => m.id !== messageId);
+                        this.saveCacheToStorage();
+                        this.render();
+                    } catch (e) {
+                        this.showCustomMessageBox('エラー', `メッセージの削除中にエラーが発生しました: ${e.message}`);
+                    }
+                }, true);
+            }
+
+            async createInvite(channelId) {
+                if (!this.token) {
+                    this.showCustomMessageBox('エラー', 'ログインしていません。');
+                    return;
+                }
+
+                if (this.selectedChannel.type !== 'server_channel') {
+                    this.showCustomMessageBox('エラー', 'サーバーチャンネルでのみ招待リンクを作成できます。');
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/invites`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': this.token,
+                            'Content-Type': 'application/json'
+                        },
+
+                        body: JSON.stringify({
+                            max_age: 604800,
+                            max_uses: 0,
+                            unique: true
+                        })
+                    });
+
+                    if (!res.ok) {
+                        const errData = await res.json();
+                        if (res.status === 50007) {
+                            this.showCustomMessageBox('エラー', 'このチャンネルで招待リンクを作成する権限がありません。');
+                        } else {
+                            throw new Error(errData.message || '招待リンクの作成に失敗しました。');
+                        }
+                        return;
+                    }
+
+                    const invite = await res.json();
+                    const inviteUrl = `https://discord.gg/${invite.code}`;
+                    this.showCustomMessageBox('招待リンクを作成しました', `<input type="text" value="${inviteUrl}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--background-tertiary); background-color: var(--background-primary); color: var(--text-primary);" readonly onclick="this.select(); document.execCommand('copy');">`, true);
+                } catch (e) {
+                    console.error('招待リンク作成エラー:', e);
+                    this.showCustomMessageBox('エラー', e.message);
+                }
+            }
+
+            showCustomMessageBox(title, message, showCopyButton = false, onConfirm = null, showCancelButton = false) {
+                const messageBox = document.getElementById('customMessageBox');
+                const messageBoxTitle = document.getElementById('messageBoxTitle');
+                const messageText = document.getElementById('messageBoxText');
+                const confirmBtn = document.getElementById('messageBoxConfirmBtn');
+                const cancelBtn = document.getElementById('messageBoxCancelBtn');
+                const copyBtnContainer = document.getElementById('messageBoxCopyButtonContainer');
+
+                messageBoxTitle.textContent = title;
+                messageText.innerHTML = message;
+                
+                confirmBtn.textContent = 'OK';
+                confirmBtn.onclick = () => {
+                    messageBox.style.display = 'none';
+                    if (onConfirm) {
+                        onConfirm();
+                    }
+                };
+                
+                if (showCancelButton) {
+                    cancelBtn.style.display = 'inline-block';
+                    cancelBtn.onclick = () => {
+                        messageBox.style.display = 'none';
+                    };
+                } else {
+                    cancelBtn.style.display = 'none';
+                }
+
+                if (copyBtnContainer) {
+                    copyBtnContainer.style.display = showCopyButton ? 'block' : 'none';
+                    if (showCopyButton) {
+                        const copyBtn = document.getElementById('messageBoxCopyBtn');
+                        if (copyBtn) {
+                            copyBtn.onclick = () => {
+                                const inputElement = messageText.querySelector('input');
+                                if (inputElement) {
+                                    inputElement.select();
+                                    document.execCommand('copy');
+                                    copyBtn.textContent = 'コピーしました！';
+                                    setTimeout(() => {
+                                        copyBtn.textContent = 'コピー';
+                                    }, 1500);
+                                }
+                            };
+                        }
+                    }
+                }
+
+                messageBox.style.display = 'flex';
+            }
+
+
+            getInitials(name) { return name ? name.split(/[\s_-]/).map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'; }
+            formatTimestamp(timestamp) { return new Date(timestamp).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+            
+            exportMessages() { 
+                if (!this.selectedChannel) return; 
+                const m = this.loadMessagesFromCache(this.selectedChannel.id); 
+                if (m.length === 0) {
+                    const messageBox = document.getElementById('customMessageBox');
+                    const messageText = document.getElementById('messageBoxText');
+                    const confirmBtn = document.getElementById('messageBoxConfirmBtn');
+                    const cancelBtn = document.getElementById('messageBoxCancelBtn');
+
+                    messageText.textContent = 'エクスポートするメッセージがありません。';
+                    confirmBtn.textContent = 'OK';
+                    confirmBtn.onclick = () => {
+                        messageBox.style.display = 'none';
+                    };
+                    cancelBtn.style.display = 'none';
+                    messageBox.style.display = 'flex';
+                    return;
+                } 
+                const data = { channel: this.selectedChannel, messages: m, exportDate: new Date().toISOString(), totalMessages: m.length }; 
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); 
+                const url = URL.createObjectURL(blob); 
+                const a = document.createElement('a'); a.href = url; 
+                const name = (this.selectedChannel.type === 'dm' ? this.selectedChannel.recipients?.[0]?.username : this.selectedChannel.name) || 'unknown'; 
+                a.download = `discord_log-${name.replace(/[^a-zA-Z0-9]/g, '_')}-${this.selectedChannel.id}.json`; 
+                a.click(); URL.revokeObjectURL(url); 
+            }
+            
+            renderMessageBody(message) {
+                const parts = [];
+
+                if (message.referenced_message) {
+                    const refMsg = message.referenced_message;
+                    const refAuthor = refMsg.author?.global_name || refMsg.author?.username || '不明なユーザー';
+                    const refContent = refMsg.content ? refMsg.content.substring(0, 50) + (refMsg.content.length > 50 ? '...' : '') : '添付ファイルまたは埋め込み';
+                    parts.push(`
+                        <div style="
+                            background-color: var(--background-tertiary);
+                            border-left: 4px solid var(--button-primary-bg);
+                            padding: 8px 12px;
+                            margin-bottom: 8px;
+                            border-radius: 4px;
+                            font-size: 13px;
+                            color: var(--text-muted);
+                            display: flex;
+                            align-items: center;
+                        ">
+                            <div class="message-avatar" style="width: 24px; height: 24px; font-size: 12px; margin-right: 8px;">
+                                ${this.renderAvatar(refMsg.author, 24)}
+                            </div>
+                            <div>
+                                <strong>${refAuthor}</strong>
+                                <div style="color: var(--text-primary); margin-top: 2px;">${refContent}</div>
+                            </div>
+                        </div>
+                    `);
+                }
+
+                if (message.content) {
+                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                    const sanitizedContent = message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const linkedContent = sanitizedContent.replace(urlRegex, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
+                    parts.push(`<div class="message-text-content">${linkedContent}</div>`);
+                }
+
+                if (message.attachments && message.attachments.length > 0) {
+                    const attachmentsHtml = message.attachments.map(att => `
+                        <a href="${att.url}" target="_blank" rel="noopener noreferrer" class="attachment-link">
+                            📎 ${att.filename} (${(att.size / 1024).toFixed(1)} KB)
+                        </a>
+                    `).join('');
+                    parts.push(`<div class="attachments-container">${attachmentsHtml}</div>`);
+                }
+
+                if (message.embeds && message.embeds.length > 0) {
+                    const embedsHtml = message.embeds.map(embed => {
+                        const embedParts = [];
+                        const borderColor = embed.color ? `#${embed.color.toString(16).padStart(6, '0')}` : 'var(--text-muted)';
+                        const embedClass = this.recentlyAddedMessageIds.has(message.id) ? 'embed new-embed' : 'embed';
+                        
+                        if (embed.title) {
+                            const plainTextTitle = embed.title.replace(/<[^>]*>/g, '');
+                            const sanitizedTitle = plainTextTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            const finalTitleHtml = embed.url 
+                                ? `<a href="${embed.url}" target="_blank" rel="noopener noreferrer">${sanitizedTitle}</a>`
+                                : sanitizedTitle;
+                            embedParts.push(`<div class="embed-title">${finalTitleHtml}</div>`);
+                        }
+                        
+                        if (embed.description) {
+                            embedParts.push(`<div class="embed-description">${embed.description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
+                        }
+
+                        if (embed.image) {
+                            embedParts.push(`<div class="embed-image"><img src="${embed.image.url}" alt="埋め込み画像" loading="lazy"></div>`);
+                        }
+
+                        return `<div class="${embedClass}" style="border-left-color: ${borderColor};">${embedParts.join('')}</div>`;
+                    }).join('');
+                    parts.push(embedsHtml);
+                }
+
+                if (parts.length > 0) {
+                    return parts.join('');
+                }
+
+                return '<em>メッセージコンテンツがありません</em>';
+            }
+
+
+            renderLoginScreen() {
+                const messageBoxHtml = `
+                    <div id="customMessageBox" style="
+                        display: none;
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(0, 0, 0, 0.7);
+                        z-index: 1000;
+                        justify-content: center;
+                        align-items: center;
+                    ">
+                        <div style="
+                            background-color: var(--background-secondary);
+                            padding: 20px;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+                            text-align: center;
+                            max-width: 350px;
+                            width: 90%;
+                            color: var(--text-primary);
+                            animation: popIn 0.2s ease-out forwards;
+                        ">
+                            <p id="messageBoxTitle" style="font-weight: 600; margin-bottom: 10px; font-size: 18px;"></p>
+                            <p id="messageBoxText" style="margin-bottom: 20px; font-size: 16px;"></p>
+                            <div id="messageBoxCopyButtonContainer" style="margin-bottom: 10px; display: none;">
+                                <button id="messageBoxCopyBtn" class="btn btn-secondary" style="width: 100%;">コピー</button>
+                            </div>
+                            <div style="display: flex; justify-content: space-around;">
+                                <button id="messageBoxConfirmBtn" class="btn" style="width: 45%;">OK</button>
+                                <button id="messageBoxCancelBtn" class="btn btn-secondary" style="width: 45%;">キャンセル</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('app').innerHTML = `<div class="login-screen"><div class="login-form"><h1 class="login-title">Discord HTTP クライアント</h1><p class="login-subtitle">ユーザートークンでログイン</p><div class="login-warning"><strong>自己責任！</strong></div><form id="loginForm"><div class="form-group"><label class="form-label" for="token">トークン</label><input type="text" id="token" class="form-input" placeholder="トークンを入力..." required></div><button type="submit" class="btn" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? 'ログイン中...' : 'ログイン'}</button></form></div></div>${messageBoxHtml}`;
+                document.getElementById('loginForm').addEventListener('submit', e => { e.preventDefault(); const t = document.getElementById('token').value.trim(); if (t) this.authenticate(t); });
+            }
+
+            renderMainScreen() {
+                const displayNameFull = this.user.global_name 
+                    ? `${this.user.global_name} (${this.user.username})` 
+                    : this.user.username;
+
+                const containerClass = `container ${this.selectedChannel ? 'chat-visible' : ''}`;
+                const sidebarWidth = localStorage.getItem('discord_sidebar_width') || '240px';
+                
+                const messageBoxHtml = `
+                    <div id="customMessageBox" style="
+                        display: none;
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(0, 0, 0, 0.7);
+                        z-index: 1000;
+                        justify-content: center;
+                        align-items: center;
+                    ">
+                        <div style="
+                            background-color: var(--background-secondary);
+                            padding: 20px;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+                            text-align: center;
+                            max-width: 350px;
+                            width: 90%;
+                            color: var(--text-primary);
+                            animation: popIn 0.2s ease-out forwards;
+                        ">
+                            <p id="messageBoxTitle" style="font-weight: 600; margin-bottom: 10px; font-size: 18px;"></p>
+                            <p id="messageBoxText" style="margin-bottom: 20px; font-size: 16px;"></p>
+                             <div id="messageBoxCopyButtonContainer" style="margin-bottom: 10px; display: none;">
+                                <button id="messageBoxCopyBtn" class="btn btn-secondary" style="width: 100%;">コピー</button>
+                            </div>
+                            <div style="display: flex; justify-content: space-around;">
+                                <button id="messageBoxConfirmBtn" class="btn" style="width: 45%;">OK</button>
+                                <button id="messageBoxCancelBtn" class="btn btn-secondary" style="width: 45%;">キャンセル</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                 document.getElementById('app').innerHTML = `<div class="${containerClass}">
+                    <div class="sidebar" style="width: ${sidebarWidth};">
+                        <div class="sidebar-header"><div class="sidebar-title">${displayNameFull}</div></div>
+                        <div class="sidebar-content">${this.renderSidebarContent()}</div>
+                        <div class="cache-info">
+                            <span class="cache-status">キャッシュ: ${this.getCacheSize()}</span>
+                            <div class="cache-actions">
+                                <button onclick="client.exportAllCache()" title="すべてのキャッシュをjsonとして保存します">キャッシュを保存</button>
+                                <button onclick="client.clearCache()">キャッシュを削除</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="resizer" id="dragHandle"></div>
+                    <div class="main-content">${this.renderChatArea()}</div>
+                </div>${messageBoxHtml}`;
+            }
+
+            renderChatArea() {
+                if (!this.selectedChannel) {
+                    return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); animation: fadeInFromBottom 0.5s ease-out forwards;">チャンネルを選択してメッセージを表示</div>`;
+                }
+                
+                const channelName = this.selectedChannel.type === 'dm' ? (this.selectedChannel.recipients?.[0]?.username || 'DM') : this.selectedChannel.name;
+                const oldestMessageId = this.messages.length > 0 ? this.messages[0].id : null;
+                
+                let chatContentHTML = '';
+                if (this.isLoading) {
+                    const skeletonMessage = `
+                        <div class="skeleton-message">
+                            <div class="skeleton-avatar"></div>
+                            <div class="skeleton-content">
+                                <div class="skeleton-line" style="width: 30%;"></div>
+                                <div class="skeleton-line" style="width: 90%;"></div>
+                                <div class="skeleton-line" style="width: 75%;"></div>
+                            </div>
+                        </div>`;
+                    chatContentHTML = Array(5).fill(skeletonMessage).join('');
+                } else {
+                    const messagesHTML = this.messages.map(m => {
+                        const messageClass = `message ${this.recentlyAddedMessageIds.has(m.id) ? 'new-message' : ''}`;
+                        return `
+                        <div class="${messageClass}" id="message-${m.id}" data-message-id="${m.id}" data-author-id="${m.author.id}">
+                            <div class="message-avatar">${this.renderAvatar(m.author, 40)}</div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-author">${m.author.global_name || m.author.username}${m.author.global_name ? ` (${m.author.username})` : ''}</span>
+                                    <span class="message-timestamp">${this.formatTimestamp(m.timestamp)}</span>
+                                </div>
+                                <div class="message-text">${this.renderMessageBody(m)}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                    
+                    chatContentHTML = `${this.isFetchingOlder ? '<div class="loading-inline">過去のメッセージを読み込んでいます...</div>' : ''}${oldestMessageId && !this.isFetchingOlder ? `<div style="text-align: center; margin-bottom: 15px;"><button id="loadMoreBtn" class="btn btn-secondary" style="width: auto; padding: 8px 16px;" onclick="client.fetchMessages('${this.selectedChannel.id}', { beforeId: '${oldestMessageId}' })">過去のメッセージを読み込む</button></div>` : ''}${this.error ? `<div class="error">${this.error}</div>` : ''}${this.messages.length === 0 ? '<div class="no-messages">メッセージがありません。</div>' : messagesHTML}`;
+                }
+
+                const inviteButtonHTML = this.selectedChannel.type === 'server_channel' ? 
+                    `<button class="btn btn-secondary btn-header" onclick="client.createInvite('${this.selectedChannel.id}')">招待リンク作成</button>` : '';
+
+                const replyingToHTML = this.replyingTo ? `
+                    <div style="
+                        background-color: rgba(90, 92, 99, 0.2); /* var(--button-secondary-hover-bg)の透明度を調整 */
+                        padding: 8px 12px;
+                        border-left: 4px solid var(--button-primary-bg);
+                        border-top-left-radius: 4px;
+                        border-top-right-radius: 4px;
+                        margin-bottom: -8px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        color: var(--text-muted);
+                        font-size: 13px;
+                    ">
+                        <span>
+                            <strong style="color: var(--header-primary);">返信先: </strong> 
+                            ${this.replyingTo.author.global_name || this.replyingTo.author.username}: 
+                            ${this.replyingTo.content ? (this.replyingTo.content.length > 50 ? this.replyingTo.content.substring(0, 50) + '...' : this.replyingTo.content) : '添付ファイルまたは埋め込み'}
+                        </span>
+                        <button onclick="client.cancelReply()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0;">&times;</button>
+                    </div>
+                ` : '';
+
+
+                return `<div class="chat-header"><button class="back-btn" onclick="client.unselectChannel()">←</button><div class="chat-title"># ${channelName}</div><div class="chat-header-actions">${inviteButtonHTML}<button class="btn btn-secondary btn-header" onclick="client.fetchMessages('${this.selectedChannel.id}')" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? '読込中' : '🔄 更新'}</button><button class="btn btn-header" onclick="client.exportMessages()">エクスポート</button></div></div><div class="chat-messages" id="chat-messages">${chatContentHTML}</div><div class="chat-input-area">${replyingToHTML}<form id="sendMessageForm"><input type="text" id="messageInput" class="message-input" placeholder="#${channelName} へメッセージを送信" autocomplete="off" ${this.isSending ? 'disabled' : ''} required><button type="submit" id="sendBtn" class="send-btn" ${this.isSending ? '...' : '送信'}</button></form></div>`;
+            }
+
+            render() {
+                const sidebar = document.querySelector('.sidebar-content');
+                const chat = document.querySelector('.chat-messages');
+                const oldSidebarScroll = sidebar ? sidebar.scrollTop : 0;
+                let oldChatScrollInfo = { top: 0, height: 0 }; 
+                if (chat) { oldChatScrollInfo = { top: chat.scrollTop, height: chat.scrollHeight }; }
+                const wasAtBottom = chat && (oldChatScrollInfo.top + chat.clientHeight >= oldChatScrollInfo.height - 20);
+
+                if (this.token && this.user) {
+                    this.renderMainScreen();
+                    this.initSidebarResizing();
+                    this.initMessageContextMenu();
+                } else {
+                    this.renderLoginScreen();
+                }
+                
+                const newSidebar = document.querySelector('.sidebar-content'); 
+                if (newSidebar) newSidebar.scrollTop = oldSidebarScroll;
+                
+                const newChat = document.querySelector('.chat-messages');
+                if (newChat) {
+                    if (this.isFetchingOlder) {
+                        newChat.scrollTop = newChat.scrollHeight - oldChatScrollInfo.height + oldChatScrollInfo.top;
+                    } else if (this.scrollToBottomOnNextRender) {
+                        newChat.scrollTop = newChat.scrollHeight;
+                        this.scrollToBottomOnNextRender = false;
+                    } else if (wasAtBottom && !this.isLoading) {
+                        newChat.scrollTop = newChat.scrollHeight;
+                    }
+                }
+
+                const sendMessageForm = document.getElementById('sendMessageForm');
+                if (sendMessageForm) { 
+                    sendMessageForm.onsubmit = (e) => { 
+                        e.preventDefault(); 
+                        const input = document.getElementById('messageInput'); 
+                        if (this.selectedChannel) {
+                            this.sendMessage(this.selectedChannel.id, input.value, this.replyingTo ? this.replyingTo.id : null);
+                        }
+                    }; 
+                }
+
+                if (this.recentlyAddedMessageIds.size > 0) {
+                    setTimeout(() => {
+                        this.recentlyAddedMessageIds.clear();
+                    }, 300);
+                }
+            }
+            
+            initSidebarResizing() {
+                const handle = document.getElementById('dragHandle');
+                const sidebar = document.querySelector('.sidebar');
+                if (!handle || !sidebar) return;
+
+                const handleMouseMove = (e) => {
+                    const diffX = e.clientX - startX;
+                    let newWidth = startWidth + diffX;
+                    
+                    const minWidth = parseInt(getComputedStyle(sidebar).minWidth);
+                    const maxWidth = parseInt(getComputedStyle(sidebar).maxWidth);
+                    if (newWidth < minWidth) newWidth = minWidth;
+                    if (newWidth > maxWidth) newWidth = maxWidth;
+
+                    sidebar.style.width = `${newWidth}px`;
+                };
+                
+                const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    localStorage.setItem('discord_sidebar_width', sidebar.style.width);
+                };
+
+                let startX = 0;
+                let startWidth = 0;
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    startX = e.clientX;
+                    startWidth = sidebar.offsetWidth;
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                });
+            }
+
+            initMessageContextMenu() {
+                const chatMessagesContainer = document.getElementById('chat-messages');
+                if (!chatMessagesContainer) return;
+
+                const existingMenu = document.getElementById('messageContextMenu');
+                if (existingMenu) {
+                    existingMenu.remove();
+                }
+
+                const contextMenu = document.createElement('ul');
+                contextMenu.id = 'messageContextMenu';
+                contextMenu.className = 'context-menu';
+                contextMenu.style.display = 'none';
+
+                contextMenu.innerHTML = `
+                    <li data-action="reply">リプライ</li>
+                    <li data-action="delete" class="danger">削除</li>
+                `;
+                document.body.appendChild(contextMenu);
+
+                let selectedMessageId = null;
+                let selectedMessageAuthorId = null;
+
+                chatMessagesContainer.addEventListener('contextmenu', (e) => {
+                    const messageElement = e.target.closest('.message');
+                    if (messageElement) {
+                        e.preventDefault();
+
+                        selectedMessageId = messageElement.dataset.messageId;
+                        selectedMessageAuthorId = messageElement.dataset.authorId;
+
+                        const deleteMenuItem = contextMenu.querySelector('[data-action="delete"]');
+                        if (deleteMenuItem) {
+                            if (this.user && selectedMessageAuthorId === this.user.id) {
+                                deleteMenuItem.style.display = 'list-item';
+                            } else {
+                                deleteMenuItem.style.display = 'none';
+                            }
+                        }
+
+                        contextMenu.style.top = `${e.clientY}px`;
+                        contextMenu.style.left = `${e.clientX}px`;
+                        contextMenu.style.display = 'block';
+                    } else {
+                        contextMenu.style.display = 'none';
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {
+                        contextMenu.style.display = 'none';
+                    }
+                });
+
+                contextMenu.addEventListener('click', (e) => {
+                    const action = e.target.dataset.action;
+                    contextMenu.style.display = 'none';
+
+                    if (selectedMessageId && this.selectedChannel) {
+                        if (action === 'reply') {
+                            this.startReply(selectedMessageId);
+                        } else if (action === 'delete') {
+                            this.deleteMessage(this.selectedChannel.id, selectedMessageId);
+                        }
+                    }
+                });
+            }
+
+            startReply(messageId) {
+                const messageToReply = this.messages.find(m => m.id === messageId);
+                if (messageToReply) {
+                    this.replyingTo = messageToReply;
+                    this.render();
+                    document.getElementById('messageInput').focus();
+                }
+            }
+
+            cancelReply() {
+                this.replyingTo = null;
+                this.render();
+            }
+        }
+        const client = new DiscordClient();
+    </script>
+</body>
+</html>
