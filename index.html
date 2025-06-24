@@ -73,22 +73,22 @@
         @keyframes chatOpenAnimation {
             from {
                 opacity: 0;
-                transform: translateY(15px);
+                transform: translateX(15px);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateX(0);
             }
         }
         
         @keyframes chatCloseAnimation {
             from {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateX(0);
             }
             to {
                 opacity: 0;
-                transform: translateY(15px);
+                transform: translateX(15px);
             }
         }
 
@@ -796,7 +796,7 @@
         }
         
         .chat-area-wrapper.animate-exit {
-            animation: chatCloseAnimation 0.05s ease-out forwards;
+            animation: chatCloseAnimation 0.09s ease-out forwards;
         }
 
         @media (max-width: 768px) {
@@ -1307,7 +1307,7 @@
                         this.selectedChannel = null;
                         this.isAnimatingChatOut = false;
                         this.render();
-                    }, 50); 
+                    }, 90); 
                 } else {
                      this.selectedChannel = null;
                      this.render();
