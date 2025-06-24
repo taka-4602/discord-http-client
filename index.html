@@ -696,10 +696,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .cache-status {
             color: #2dc770;
+        }
+        
+        .cache-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
         }
 
         .cache-actions button {
@@ -711,7 +720,6 @@
             font-size: 11px;
             cursor: pointer;
             transition: all 0.15s ease;
-            margin-left: 8px;
         }
 
         .cache-actions button:hover {
