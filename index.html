@@ -25,6 +25,18 @@
             --skeleton-highlight: #35373c;
         }
 
+        body.theme-amoled {
+            --background-primary: #000000;
+            --background-secondary: #0c0c0c;
+            --background-tertiary: #050505;
+            --text-muted: #8e9297;
+            --button-secondary-bg: #1f1f1f;
+            --button-secondary-hover-bg: #2a2a2a;
+            --embed-background: #0c0c0c;
+            --skeleton-base: #0c0c0c;
+            --skeleton-highlight: #1a1a1a;
+        }
+
         @keyframes fadeInFromBottom {
             from {
                 opacity: 0;
@@ -57,6 +69,28 @@
             50% { transform: scale(1.02); }
             100% { transform: scale(1); }
         }
+        
+        @keyframes chatOpenAnimation {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes chatCloseAnimation {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+        }
 
         * {
             margin: 0;
@@ -73,6 +107,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--background-primary);
             color: var(--text-primary);
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
         }
 
         #app {
@@ -95,7 +130,7 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
         }
 
         .resizer {
@@ -103,7 +138,7 @@
             cursor: col-resize;
             background: var(--background-tertiary);
             flex-shrink: 0;
-            transition: background-color 0.15s ease;
+            transition: background-color 0.25s ease;
         }
         .resizer:hover {
             background: var(--button-primary-bg);
@@ -162,9 +197,17 @@
 
         .channel-list {
             padding-left: 20px;
-            margin-top: 4px;
-            border-left: 1px solid #40444b;
             margin-left: 16px;
+            border-left: 1px solid #40444b;
+            max-height: 100vh;
+            overflow: hidden;
+            transition: max-height 0.35s ease-in-out, margin-top 0.35s ease-in-out;
+            margin-top: 4px;
+        }
+
+        .channel-list.collapsed {
+            max-height: 0;
+            margin-top: 0;
         }
 
         .channel-item {
@@ -228,6 +271,7 @@
             flex-direction: column;
             height: 100%;
             min-width: 0;
+            transition: background-color 0.2s ease-in-out;
         }
 
         .login-screen {
@@ -246,6 +290,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 420px;
+            transition: background-color 0.2s ease-in-out;
         }
         
         .login-form.initial-entry {
@@ -301,7 +346,7 @@
             color: var(--text-primary);
             font-size: 14px;
             outline: none;
-            transition: border-color 0.15s ease;
+            transition: border-color 0.15s ease, background-color 0.2s ease-in-out;
         }
 
         .form-input:focus {
@@ -358,11 +403,11 @@
             align-items: center;
             padding: 0 16px;
             flex-shrink: 0;
-            /* Added for responsive buttons */
             justify-content: space-between; 
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
         }
         
-        .chat-header-actions { /* New div for buttons */
+        .chat-header-actions {
             display: flex;
             align-items: center;
         }
@@ -387,6 +432,7 @@
             overflow-y: auto;
             background-color: var(--background-primary);
             min-height: 0;
+            transition: background-color 0.2s ease-in-out;
         }
 
         .message {
@@ -472,6 +518,7 @@
             background-color: var(--background-primary);
             border-top: 1px solid var(--background-tertiary);
             flex-shrink: 0;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
         }
 
         #sendMessageForm {
@@ -480,6 +527,7 @@
             background-color: var(--background-secondary);
             border-radius: 8px;
             padding: 8px;
+            transition: background-color 0.2s ease-in-out;
         }
         
         .message-input {
@@ -584,6 +632,7 @@
             padding: 12px;
             margin-top: 8px;
             max-width: 520px;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
         }
 
         .embed.new-embed {
@@ -686,10 +735,10 @@
             opacity: 0.8;
         }
         
-.collapse-icon {
+        .collapse-icon {
             font-size: 10px;
             color: var(--text-muted);
-            transition: transform 0.15s ease;
+            transition: transform 0.3s ease-in-out;
         }
         
         .collapse-icon.collapsed {
@@ -697,14 +746,15 @@
         }
         
         .collapsible-list {
+            max-height: 100vh;
             overflow: hidden;
-            transition: max-height 0.25s ease-out;
-            max-height: 9999px;
+            transition: max-height 0.35s ease-in-out;
         }
-        
+
         .collapsible-list.collapsed {
             max-height: 0;
         }
+
 
         .context-menu {
             position: absolute;
@@ -732,6 +782,20 @@
 
         .context-menu li.danger:hover {
             background-color: var(--danger-color);
+        }
+        
+        .chat-area-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-area-wrapper.animate-enter {
+            animation: chatOpenAnimation 0.2s ease-out forwards;
+        }
+        
+        .chat-area-wrapper.animate-exit {
+            animation: chatCloseAnimation 0.05s ease-out forwards;
         }
 
         @media (max-width: 768px) {
@@ -790,32 +854,29 @@
             }
 
             .chat-header {
-                /* Ensure buttons wrap if space is limited */
                 flex-wrap: wrap; 
-                height: auto; /* Adjust height dynamically based on content */
-                min-height: 48px; /* Ensure minimum height */
-                padding: 8px 16px; /* Add vertical padding */
+                height: auto; 
+                min-height: 48px;
+                padding: 8px 16px;
             }
 
             .chat-title {
-                /* Allow title to take less space if buttons are present */
                 flex-grow: 1; 
-                margin-right: 8px; /* Reduce margin */
+                margin-right: 8px;
             }
 
             .btn-header {
                 padding: 5px 8px;
                 font-size: 12px;
                 margin-left: 6px;
-                /* Add margin for spacing between buttons */
                 margin-bottom: 4px; 
             }
 
-            .chat-header-actions { /* Ensure buttons stay together */
+            .chat-header-actions {
                 display: flex;
-                flex-wrap: wrap; /* Allow buttons to wrap to next line if needed */
-                justify-content: flex-end; /* Align buttons to the right */
-                margin-left: auto; /* Push buttons to the right */
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                margin-left: auto;
             }
         }
     </style>
@@ -845,6 +906,12 @@
                 this.isOtherServersCollapsed = false;
                 this.recentlyAddedMessageIds = new Set();
                 this.scrollToBottomOnNextRender = false;
+                this.isAnimatingChatIn = false;
+                this.isAnimatingChatOut = false;
+                
+                this.theme = 'default';
+                this.loadTheme();
+                
                 this.loadCacheFromStorage();
                 this.init();
             }
@@ -857,17 +924,55 @@
                 }
             }
             
+            loadTheme() {
+                const savedTheme = localStorage.getItem('discord_theme');
+                if (savedTheme === 'amoled') {
+                    this.theme = 'amoled';
+                    document.body.classList.add('theme-amoled');
+                } else {
+                    this.theme = 'default';
+                    document.body.classList.remove('theme-amoled');
+                }
+            }
+
+            toggleTheme() {
+                if (this.theme === 'default') {
+                    this.theme = 'amoled';
+                    document.body.classList.add('theme-amoled');
+                    localStorage.setItem('discord_theme', 'amoled');
+                } else {
+                    this.theme = 'default';
+                    document.body.classList.remove('theme-amoled');
+                    localStorage.setItem('discord_theme', 'default');
+                }
+            }
+
             toggleDmCollapse() {
                 this.isDmCollapsed = !this.isDmCollapsed;
-                this.render();
+                const list = document.getElementById('dm-list');
+                const icon = document.querySelector('[data-section="dm"] .collapse-icon');
+                if (list && icon) {
+                    list.classList.toggle('collapsed', this.isDmCollapsed);
+                    icon.classList.toggle('collapsed', this.isDmCollapsed);
+                }
             }
             toggleAdminServersCollapse() {
                 this.isAdminServersCollapsed = !this.isAdminServersCollapsed;
-                this.render();
+                const list = document.getElementById('admin-server-list');
+                const icon = document.querySelector('[data-section="admin"] .collapse-icon');
+                if (list && icon) {
+                    list.classList.toggle('collapsed', this.isAdminServersCollapsed);
+                    icon.classList.toggle('collapsed', this.isAdminServersCollapsed);
+                }
             }
             toggleOtherServersCollapse() {
                 this.isOtherServersCollapsed = !this.isOtherServersCollapsed;
-                this.render();
+                const list = document.getElementById('other-server-list');
+                const icon = document.querySelector('[data-section="other"] .collapse-icon');
+                if (list && icon) {
+                    list.classList.toggle('collapsed', this.isOtherServersCollapsed);
+                    icon.classList.toggle('collapsed', this.isOtherServersCollapsed);
+                }
             }
             
             renderSidebarContent() {
@@ -883,33 +988,43 @@
                 const otherListClass = this.isOtherServersCollapsed ? 'collapsible-list collapsed' : 'collapsible-list';
                 const otherIconClass = this.isOtherServersCollapsed ? 'collapse-icon collapsed' : 'collapse-icon';
 
-                const renderServer = (server) => `
-                    <div class="server-item-container">
-                        <div class="server-item ${this.expandedServers.has(server.id) ? 'active' : ''}" onclick="client.toggleServer('${server.id}')">
-                            <div class="avatar">${this.renderServerIcon(server)}</div>
-                            <div class="user-info">
-                                <div class="username">${server.name}</div>
-                                <div class="status">${this.expandedServers.has(server.id) ? '▲ 閉じる' : '▼ 開く'}</div>
+                const renderServer = (server) => {
+                    const isExpanded = this.expandedServers.has(server.id);
+                    const channelListClass = !isExpanded ? 'channel-list collapsed' : 'channel-list';
+                    const serverItemClass = isExpanded ? 'server-item active' : 'server-item';
+                    const statusText = isExpanded ? '▲ 閉じる' : '▼ 開く';
+                    const channelListId = `channel-list-${server.id}`;
+                    const serverItemId = `server-item-${server.id}`;
+
+                    return `
+                        <div class="server-item-container">
+                            <div id="${serverItemId}" class="${serverItemClass}" onclick="client.toggleServer('${server.id}')">
+                                <div class="avatar">${this.renderServerIcon(server)}</div>
+                                <div class="user-info">
+                                    <div class="username">${server.name}</div>
+                                    <div class="status">${statusText}</div>
+                                </div>
                             </div>
-                        </div>
-                        ${this.expandedServers.has(server.id) ? `
-                            <div class="channel-list">
+                            <div id="${channelListId}" class="${channelListClass}">
+                                <div>
                                 ${(this.serverChannelsCache[server.id] || []).map(channel => `
                                     <div class="channel-item ${this.selectedChannel?.id === channel.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')}, 'server_channel')">
                                         <span class="channel-name"># ${channel.name}</span>
                                     </div>
                                 `).join('')}
+                                </div>
                             </div>
-                        ` : ''}
-                    </div>
-                `;
+                        </div>
+                    `;
+                };
                 
                 return `
-                    <div class="section-header" onclick="client.toggleDmCollapse()">
+                    <div class="section-header" data-section="dm" onclick="client.toggleDmCollapse()">
                         <div class="section-title">ダイレクトメッセージ</div>
                         <span class="${dmIconClass}">▼</span>
                     </div>
-                    <div class="${dmListClass}">
+                    <div id="dm-list" class="${dmListClass}">
+                        <div>
                         ${this.dms.map(dm => `
                             <div class="dm-item ${this.selectedChannel?.id === dm.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(dm).replace(/"/g, '&quot;')}, 'dm')">
                                 <div class="avatar">${dm.recipients?.[0] ? this.renderAvatar(dm.recipients[0]) : this.getInitials('DM')}</div>
@@ -918,26 +1033,30 @@
                                 </div>
                             </div>
                         `).join('')}
+                        </div>
                     </div>
 
-                    <div class="section-header" style="margin-top: 24px;" onclick="client.toggleAdminServersCollapse()">
+                    <div class="section-header" style="margin-top: 24px;" data-section="admin" onclick="client.toggleAdminServersCollapse()">
                         <div class="section-title">管理サーバー</div>
                         <span class="${adminIconClass}">▼</span>
                     </div>
-                    <div class="${adminListClass}">
+                    <div id="admin-server-list" class="${adminListClass}">
+                        <div>
                         ${adminServers.map(renderServer).join('')}
+                        </div>
                     </div>
 
-                    <div class="section-header" style="margin-top: 16px;" onclick="client.toggleOtherServersCollapse()">
+                    <div class="section-header" style="margin-top: 16px;" data-section="other" onclick="client.toggleOtherServersCollapse()">
                         <div class="section-title">その他のサーバー</div>
                         <span class="${otherIconClass}">▼</span>
                     </div>
-                    <div class="${otherListClass}">
+                    <div id="other-server-list" class="${otherListClass}">
+                        <div>
                         ${otherServers.map(renderServer).join('')}
+                        </div>
                     </div>
                 `;
             }
-
             
             loadCacheFromStorage() { try { const m = localStorage.getItem('discord_message_cache'); const u = localStorage.getItem('discord_user_cache'); if (m) this.messageCache = JSON.parse(m); if (u) this.userCache = JSON.parse(u); } catch (e) { console.error('キャッシュ読み込みエラー:', e); } }
             saveCacheToStorage() { try { localStorage.setItem('discord_message_cache', JSON.stringify(this.messageCache)); localStorage.setItem('discord_user_cache', JSON.stringify(this.userCache)); } catch (e) { console.error('キャッシュ保存エラー:', e); } }
@@ -961,18 +1080,7 @@
             
             exportAllCache() {
                 if (Object.keys(this.messageCache).length === 0) {
-                    const messageBox = document.getElementById('customMessageBox');
-                    const messageText = document.getElementById('messageBoxText');
-                    const confirmBtn = document.getElementById('messageBoxConfirmBtn');
-                    const cancelBtn = document.getElementById('messageBoxCancelBtn');
-
-                    messageText.textContent = 'エクスポートするキャッシュがありません。';
-                    confirmBtn.textContent = 'OK';
-                    confirmBtn.onclick = () => {
-                        messageBox.style.display = 'none';
-                    };
-                    cancelBtn.style.display = 'none';
-                    messageBox.style.display = 'flex';
+                    this.showCustomMessageBox('エクスポートエラー', 'エクスポートするキャッシュがありません。');
                     return;
                 }
 
@@ -1062,6 +1170,7 @@
                 this.saveCacheToStorage(); 
             }
             loadMessagesFromCache(channelId) { return this.messageCache[`${channelId}`] || []; }
+
             getAvatarUrl(user, size = 512) { return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=${size}` : null; }
             getServerIconUrl(server, size = 512) { return server?.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.webp?size=${size}` : null; }
             renderAvatar(user, size = 512) { const url = this.getAvatarUrl(user, size); return url ? `<img src="${url}" alt="${user?.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(user?.username)}</span>` : `<span>${this.getInitials(user?.username)}</span>`; }
@@ -1106,7 +1215,38 @@
             
             async fetchServerChannels(serverId) { if (this.serverChannelsCache[serverId]) return; try { const res = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } }); if (res.ok) this.serverChannelsCache[serverId] = (await res.json()).filter(ch => ch.type === 0 || ch.type === 5); } catch (e) { console.error(`サーバー[${serverId}]のチャンネル取得エラー:`, e); } }
             
-            async toggleServer(serverId) { if (this.expandedServers.has(serverId)) { this.expandedServers.delete(serverId); } else { this.expandedServers.add(serverId); await this.fetchServerChannels(serverId); } this.render(); }
+            async toggleServer(serverId) {
+                if (this.expandedServers.has(serverId)) {
+                    this.expandedServers.delete(serverId);
+                    const list = document.getElementById(`channel-list-${serverId}`);
+                    const item = document.getElementById(`server-item-${serverId}`);
+                    if (list) list.classList.add('collapsed');
+                    if (item) {
+                        item.classList.remove('active');
+                        item.querySelector('.status').textContent = '▼ 開く';
+                    }
+                } else {
+                    this.expandedServers.add(serverId);
+                    if (!this.serverChannelsCache[serverId]) {
+                        await this.fetchServerChannels(serverId);
+                        const listContent = document.querySelector(`#channel-list-${serverId} > div`);
+                        if (listContent) {
+                            listContent.innerHTML = (this.serverChannelsCache[serverId] || []).map(channel => `
+                                <div class="channel-item ${this.selectedChannel?.id === channel.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')}, 'server_channel')">
+                                    <span class="channel-name"># ${channel.name}</span>
+                                </div>
+                            `).join('');
+                        }
+                    }
+                    const list = document.getElementById(`channel-list-${serverId}`);
+                    const item = document.getElementById(`server-item-${serverId}`);
+                    if (list) list.classList.remove('collapsed');
+                    if (item) {
+                        item.classList.add('active');
+                        item.querySelector('.status').textContent = '▲ 閉じる';
+                    }
+                }
+            }
 
             async fetchMessages(channelId, { beforeId = null } = {}) {
                 const stateKey = beforeId ? 'isFetchingOlder' : 'isLoading';
@@ -1139,12 +1279,14 @@
             }
             
             selectChannel(channel, type) { 
+                if (this.isAnimatingChatOut || this.isAnimatingChatIn) return;
                 this.selectedChannel = { ...channel, type }; 
                 this.error = null; 
                 this.messages = this.loadMessagesFromCache(channel.id); 
                 this.isFetchingOlder = false; 
                 this.recentlyAddedMessageIds.clear();
                 this.scrollToBottomOnNextRender = true;
+                this.isAnimatingChatIn = true;
 
                 if (this.messages.length === 0) { 
                     this.fetchMessages(channel.id); 
@@ -1153,7 +1295,23 @@
                 } 
             }
             
-            unselectChannel() { this.selectedChannel = null; this.render(); }
+            unselectChannel() {
+                if (!this.selectedChannel || this.isAnimatingChatOut) return;
+                
+                const chatArea = document.querySelector('.chat-area-wrapper');
+                if (chatArea) {
+                    this.isAnimatingChatOut = true;
+                    chatArea.classList.add('animate-exit');
+                    setTimeout(() => {
+                        this.selectedChannel = null;
+                        this.isAnimatingChatOut = false;
+                        this.render();
+                    }, 50); 
+                } else {
+                     this.selectedChannel = null;
+                     this.render();
+                }
+            }
             
             async sendMessage(channelId, content, messageReference = null) {
                 if (!content.trim() || this.isSending) return;
@@ -1308,7 +1466,6 @@
                 messageBox.style.display = 'flex';
             }
 
-
             getInitials(name) { return name ? name.split(/[\s_-]/).map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'; }
             formatTimestamp(timestamp) { return new Date(timestamp).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
             
@@ -1316,18 +1473,7 @@
                 if (!this.selectedChannel) return; 
                 const m = this.loadMessagesFromCache(this.selectedChannel.id); 
                 if (m.length === 0) {
-                    const messageBox = document.getElementById('customMessageBox');
-                    const messageText = document.getElementById('messageBoxText');
-                    const confirmBtn = document.getElementById('messageBoxConfirmBtn');
-                    const cancelBtn = document.getElementById('messageBoxCancelBtn');
-
-                    messageText.textContent = 'エクスポートするメッセージがありません。';
-                    confirmBtn.textContent = 'OK';
-                    confirmBtn.onclick = () => {
-                        messageBox.style.display = 'none';
-                    };
-                    cancelBtn.style.display = 'none';
-                    messageBox.style.display = 'flex';
+                    this.showCustomMessageBox('エクスポートエラー', 'エクスポートするメッセージがありません。');
                     return;
                 } 
                 const data = { channel: this.selectedChannel, messages: m, exportDate: new Date().toISOString(), totalMessages: m.length }; 
@@ -1371,7 +1517,7 @@
 
                 if (message.content) {
                     const urlRegex = /(https?:\/\/[^\s]+)/g;
-                    const sanitizedContent = message.content.replace(/</g, '<').replace(/>/g, '>');
+                    const sanitizedContent = message.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     const linkedContent = sanitizedContent.replace(urlRegex, '<a href="$&" target="_blank" rel="noopener noreferrer">$&</a>');
                     parts.push(`<div class="message-text-content">${linkedContent}</div>`);
                 }
@@ -1393,7 +1539,7 @@
                         
                         if (embed.title) {
                             const plainTextTitle = embed.title.replace(/<[^>]*>/g, '');
-                            const sanitizedTitle = plainTextTitle.replace(/</g, '<').replace(/>/g, '>');
+                            const sanitizedTitle = plainTextTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                             const finalTitleHtml = embed.url 
                                 ? `<a href="${embed.url}" target="_blank" rel="noopener noreferrer">${sanitizedTitle}</a>`
                                 : sanitizedTitle;
@@ -1401,7 +1547,7 @@
                         }
                         
                         if (embed.description) {
-                            embedParts.push(`<div class="embed-description">${embed.description.replace(/</g, '<').replace(/>/g, '>')}</div>`);
+                            embedParts.push(`<div class="embed-description">${embed.description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`);
                         }
 
                         if (embed.image) {
@@ -1420,32 +1566,10 @@
                 return '<em>メッセージコンテンツがありません</em>';
             }
 
-
             renderLoginScreen() {
                 const messageBoxHtml = `
-                    <div id="customMessageBox" style="
-                        display: none;
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-color: rgba(0, 0, 0, 0.7);
-                        z-index: 1000;
-                        justify-content: center;
-                        align-items: center;
-                    ">
-                        <div style="
-                            background-color: var(--background-secondary);
-                            padding: 20px;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-                            text-align: center;
-                            max-width: 350px;
-                            width: 90%;
-                            color: var(--text-primary);
-                            animation: popIn 0.2s ease-out forwards;
-                        ">
+                    <div id="customMessageBox" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
+                        <div style="background-color: var(--background-secondary); padding: 20px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); text-align: center; max-width: 350px; width: 90%; color: var(--text-primary); animation: popIn 0.2s ease-out forwards;">
                             <p id="messageBoxTitle" style="font-weight: 600; margin-bottom: 10px; font-size: 18px;"></p>
                             <p id="messageBoxText" style="margin-bottom: 20px; font-size: 16px;"></p>
                             <div id="messageBoxCopyButtonContainer" style="margin-bottom: 10px; display: none;">
@@ -1460,7 +1584,7 @@
                 `;
 
                 document.getElementById('app').innerHTML = `<div class="login-screen"><div class="login-form"><h1 class="login-title">Discord HTTP クライアント</h1><p class="login-subtitle">ユーザートークンでログイン</p><div class="login-warning"><strong>自己責任！</strong></div><form id="loginForm"><div class="form-group"><label class="form-label" for="token">トークン</label><input type="text" id="token" class="form-input" placeholder="トークンを入力..." required></div><button type="submit" class="btn" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? 'ログイン中...' : 'ログイン'}</button></form></div></div>${messageBoxHtml}`;
-                document.getElementById('loginForm').addEventListener('submit', e => { e.preventDefault(); const t = document.getElementById('token').value.trim(); if (t) this.authenticate(t); });
+                document.getElementById('loginForm').addEventListener('submit', e => { e.preventDefault(); const t = document.getElementById('token').value.trim(); if (t) client.authenticate(t); });
             }
 
             renderMainScreen() {
@@ -1468,33 +1592,12 @@
                     ? `${this.user.global_name} (${this.user.username})` 
                     : this.user.username;
 
-                const containerClass = `container ${this.selectedChannel ? 'chat-visible' : ''}`;
+                const containerClass = `container ${this.selectedChannel && !this.isAnimatingChatOut ? 'chat-visible' : ''}`;
                 const sidebarWidth = localStorage.getItem('discord_sidebar_width') || '240px';
                 
                 const messageBoxHtml = `
-                    <div id="customMessageBox" style="
-                        display: none;
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-color: rgba(0, 0, 0, 0.7);
-                        z-index: 1000;
-                        justify-content: center;
-                        align-items: center;
-                    ">
-                        <div style="
-                            background-color: var(--background-secondary);
-                            padding: 20px;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-                            text-align: center;
-                            max-width: 350px;
-                            width: 90%;
-                            color: var(--text-primary);
-                            animation: popIn 0.2s ease-out forwards;
-                        ">
+                    <div id="customMessageBox" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
+                        <div style="background-color: var(--background-secondary); padding: 20px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); text-align: center; max-width: 350px; width: 90%; color: var(--text-primary); animation: popIn 0.2s ease-out forwards;">
                             <p id="messageBoxTitle" style="font-weight: 600; margin-bottom: 10px; font-size: 18px;"></p>
                             <p id="messageBoxText" style="margin-bottom: 20px; font-size: 16px;"></p>
                              <div id="messageBoxCopyButtonContainer" style="margin-bottom: 10px; display: none;">
@@ -1515,6 +1618,7 @@
                         <div class="cache-info">
                             <span class="cache-status">キャッシュ: ${this.getCacheSize()}</span>
                             <div class="cache-actions">
+                                <button onclick="client.toggleTheme()" title="テーマを切り替え">テーマ変更</button>
                                 <button onclick="client.exportAllCache()" title="すべてのキャッシュをjsonとして保存します">キャッシュを保存</button>
                                 <button onclick="client.clearCache()">キャッシュを削除</button>
                             </div>
@@ -1527,38 +1631,23 @@
 
             renderChatArea() {
                 if (!this.selectedChannel) {
-                    return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); animation: fadeInFromBottom 0.5s ease-out forwards;">チャンネルを選択してメッセージを表示</div>`;
+                    return `<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted);">チャンネルを選択してメッセージを表示</div>`;
                 }
                 
                 const channelName = this.selectedChannel.type === 'dm' ? (this.selectedChannel.recipients?.[0]?.username || 'DM') : this.selectedChannel.name;
                 const oldestMessageId = this.messages.length > 0 ? this.messages[0].id : null;
                 
+                const animationClass = this.isAnimatingChatIn ? 'animate-enter' : '';
+                this.isAnimatingChatIn = false;
+
                 let chatContentHTML = '';
                 if (this.isLoading) {
-                    const skeletonMessage = `
-                        <div class="skeleton-message">
-                            <div class="skeleton-avatar"></div>
-                            <div class="skeleton-content">
-                                <div class="skeleton-line" style="width: 30%;"></div>
-                                <div class="skeleton-line" style="width: 90%;"></div>
-                                <div class="skeleton-line" style="width: 75%;"></div>
-                            </div>
-                        </div>`;
+                    const skeletonMessage = `<div class="skeleton-message"><div class="skeleton-avatar"></div><div class="skeleton-content"><div class="skeleton-line" style="width: 30%;"></div><div class="skeleton-line" style="width: 90%;"></div><div class="skeleton-line" style="width: 75%;"></div></div></div>`;
                     chatContentHTML = Array(5).fill(skeletonMessage).join('');
                 } else {
                     const messagesHTML = this.messages.map(m => {
                         const messageClass = `message ${this.recentlyAddedMessageIds.has(m.id) ? 'new-message' : ''}`;
-                        return `
-                        <div class="${messageClass}" id="message-${m.id}" data-message-id="${m.id}" data-author-id="${m.author.id}">
-                            <div class="message-avatar">${this.renderAvatar(m.author, 512)}</div>
-                            <div class="message-content">
-                                <div class="message-header">
-                                    <span class="message-author">${m.author.global_name || m.author.username}${m.author.global_name ? ` (${m.author.username})` : ''}</span>
-                                    <span class="message-timestamp">${this.formatTimestamp(m.timestamp)}</span>
-                                </div>
-                                <div class="message-text">${this.renderMessageBody(m)}</div>
-                            </div>
-                        </div>`;
+                        return `<div class="${messageClass}" id="message-${m.id}" data-message-id="${m.id}" data-author-id="${m.author.id}"><div class="message-avatar">${this.renderAvatar(m.author, 512)}</div><div class="message-content"><div class="message-header"><span class="message-author">${m.author.global_name || m.author.username}${m.author.global_name ? ` (${m.author.username})` : ''}</span><span class="message-timestamp">${this.formatTimestamp(m.timestamp)}</span></div><div class="message-text">${this.renderMessageBody(m)}</div></div></div>`;
                     }).join('');
                     
                     chatContentHTML = `${this.isFetchingOlder ? '<div class="loading-inline">過去のメッセージを読み込んでいます...</div>' : ''}${oldestMessageId && !this.isFetchingOlder ? `<div style="text-align: center; margin-bottom: 15px;"><button id="loadMoreBtn" class="btn btn-secondary" style="width: auto; padding: 8px 16px;" onclick="client.fetchMessages('${this.selectedChannel.id}', { beforeId: '${oldestMessageId}' })">過去のメッセージを読み込む</button></div>` : ''}${this.error ? `<div class="error">${this.error}</div>` : ''}${this.messages.length === 0 ? '<div class="no-messages">メッセージがありません。</div>' : messagesHTML}`;
@@ -1567,31 +1656,13 @@
                 const inviteButtonHTML = this.selectedChannel.type === 'server_channel' ? 
                     `<button class="btn btn-secondary btn-header" onclick="client.createInvite('${this.selectedChannel.id}')">招待リンク作成</button>` : '';
 
-                const replyingToHTML = this.replyingTo ? `
-                    <div style="
-                        background-color: rgba(90, 92, 99, 0.2); /* var(--button-secondary-hover-bg)の透明度を調整 */
-                        padding: 8px 12px;
-                        border-left: 4px solid var(--button-primary-bg);
-                        border-top-left-radius: 4px;
-                        border-top-right-radius: 4px;
-                        margin-bottom: -8px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        color: var(--text-muted);
-                        font-size: 13px;
-                    ">
-                        <span>
-                            <strong style="color: var(--header-primary);">返信先: </strong> 
-                            ${this.replyingTo.author.global_name || this.replyingTo.author.username}: 
-                            ${this.replyingTo.content ? (this.replyingTo.content.length > 50 ? this.replyingTo.content.substring(0, 50) + '...' : this.replyingTo.content) : '添付ファイルまたは埋め込み'}
-                        </span>
-                        <button onclick="client.cancelReply()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0;">&times;</button>
-                    </div>
-                ` : '';
+                const replyingToHTML = this.replyingTo ? `<div style="background-color: rgba(90, 92, 99, 0.2); padding: 8px 12px; border-left: 4px solid var(--button-primary-bg); border-top-left-radius: 4px; border-top-right-radius: 4px; margin-bottom: -8px; display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 13px;"><span><strong style="color: var(--header-primary);">返信先: </strong> ${this.replyingTo.author.global_name || this.replyingTo.author.username}: ${this.replyingTo.content ? (this.replyingTo.content.length > 50 ? this.replyingTo.content.substring(0, 50) + '...' : this.replyingTo.content) : '添付ファイルまたは埋め込み'}</span><button onclick="client.cancelReply()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0;">&times;</button></div>` : '';
 
+                const chatHeaderHTML = `<div class="chat-header"><button class="back-btn" onclick="client.unselectChannel()">←</button><div class="chat-title"># ${channelName}</div><div class="chat-header-actions">${inviteButtonHTML}<button class="btn btn-secondary btn-header" onclick="client.fetchMessages('${this.selectedChannel.id}')" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? '読込中' : '🔄 更新'}</button><button class="btn btn-header" onclick="client.exportMessages()">エクスポート</button></div></div>`;
+                const chatMessagesWrapperHTML = `<div class="chat-messages" id="chat-messages">${chatContentHTML}</div>`;
+                const chatInputAreaHTML = `<div class="chat-input-area">${replyingToHTML}<form id="sendMessageForm"><input type="text" id="messageInput" class="message-input" placeholder="#${channelName} へメッセージを送信" autocomplete="off" ${this.isSending ? 'disabled' : ''} required><button type="submit" id="sendBtn" class="send-btn" ${this.isSending ? 'disabled' : ''}>${this.isSending ? '送信中...' : '送信'}</button></form></div>`;
 
-                return `<div class="chat-header"><button class="back-btn" onclick="client.unselectChannel()">←</button><div class="chat-title"># ${channelName}</div><div class="chat-header-actions">${inviteButtonHTML}<button class="btn btn-secondary btn-header" onclick="client.fetchMessages('${this.selectedChannel.id}')" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? '読込中' : '🔄 更新'}</button><button class="btn btn-header" onclick="client.exportMessages()">エクスポート</button></div></div><div class="chat-messages" id="chat-messages">${chatContentHTML}</div><div class="chat-input-area">${replyingToHTML}<form id="sendMessageForm"><input type="text" id="messageInput" class="message-input" placeholder="#${channelName} へメッセージを送信" autocomplete="off" ${this.isSending ? 'disabled' : ''} required><button type="submit" id="sendBtn" class="send-btn" ${this.isSending ? '...' : '送信'}</button></form></div>`;
+                return `<div class="chat-area-wrapper ${animationClass}">${chatHeaderHTML}${chatMessagesWrapperHTML}${chatInputAreaHTML}</div>`;
             }
 
             render() {
@@ -1630,16 +1701,14 @@
                     sendMessageForm.onsubmit = (e) => { 
                         e.preventDefault(); 
                         const input = document.getElementById('messageInput'); 
-                        if (this.selectedChannel) {
-                            this.sendMessage(this.selectedChannel.id, input.value, this.replyingTo ? this.replyingTo.id : null);
+                        if (client.selectedChannel) {
+                            client.sendMessage(client.selectedChannel.id, input.value, client.replyingTo ? client.replyingTo.id : null);
                         }
-                    }; 
+                    };
                 }
 
                 if (this.recentlyAddedMessageIds.size > 0) {
-                    setTimeout(() => {
-                        this.recentlyAddedMessageIds.clear();
-                    }, 300);
+                    setTimeout(() => { this.recentlyAddedMessageIds.clear(); }, 300);
                 }
             }
             
@@ -1696,10 +1765,7 @@
                 contextMenu.className = 'context-menu';
                 contextMenu.style.display = 'none';
 
-                contextMenu.innerHTML = `
-                    <li data-action="reply">リプライ</li>
-                    <li data-action="delete" class="danger">削除</li>
-                `;
+                contextMenu.innerHTML = `<li data-action="reply">リプライ</li><li data-action="delete" class="danger">削除</li>`;
                 document.body.appendChild(contextMenu);
 
                 let selectedMessageId = null;
@@ -1715,7 +1781,7 @@
 
                         const deleteMenuItem = contextMenu.querySelector('[data-action="delete"]');
                         if (deleteMenuItem) {
-                            if (this.user && selectedMessageAuthorId === this.user.id) {
+                            if (client.user && selectedMessageAuthorId === client.user.id) {
                                 deleteMenuItem.style.display = 'list-item';
                             } else {
                                 deleteMenuItem.style.display = 'none';
@@ -1740,11 +1806,11 @@
                     const action = e.target.dataset.action;
                     contextMenu.style.display = 'none';
 
-                    if (selectedMessageId && this.selectedChannel) {
+                    if (selectedMessageId && client.selectedChannel) {
                         if (action === 'reply') {
-                            this.startReply(selectedMessageId);
+                            client.startReply(selectedMessageId);
                         } else if (action === 'delete') {
-                            this.deleteMessage(this.selectedChannel.id, selectedMessageId);
+                            client.deleteMessage(client.selectedChannel.id, selectedMessageId);
                         }
                     }
                 });
