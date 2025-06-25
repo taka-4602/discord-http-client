@@ -99,7 +99,6 @@
         }
 
         html, body {
-            overflow: hidden;
             height: 100%;
         }
 
@@ -112,13 +111,13 @@
 
         #app {
             height: 100%;
+            overflow: hidden;
         }
 
         .container {
             display: flex;
             height: 100%;
             position: relative;
-            overflow: hidden;
         }
 
         .sidebar {
@@ -195,12 +194,12 @@
         .server-item.active {
             background-color: #35373c;
         }
-
+        
         .channel-list {
             padding-left: 20px;
             margin-left: 16px;
             border-left: 1px solid #40444b;
-            max-height: 2000px;
+            max-height: 5000px;
             overflow: hidden;
             transition: max-height 0.35s ease-in-out, margin-top 0.35s ease-in-out;
             margin-top: 4px;
@@ -210,6 +209,16 @@
             max-height: 0;
             margin-top: 0;
         }
+        
+        .category-header {
+            padding: 16px 10px 4px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .02em;
+            user-select: none;
+        }
 
         .channel-item {
             padding: 6px 10px;
@@ -218,8 +227,26 @@
         .channel-name {
             color: var(--interactive-normal);
             font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .channel-icon {
+            margin-right: 8px;
+            color: var(--text-muted);
+            width: 12px;
+            display: inline-block;
+            text-align: center;
         }
 
+        .channel-item.voice-channel .channel-name {
+            color: var(--text-muted);
+        }
+
+        .channel-item.voice-channel:hover .channel-name {
+            color: var(--interactive-hover);
+        }
+        
         .channel-item.active .channel-name {
             color: var(--interactive-active);
             font-weight: 500;
@@ -755,7 +782,7 @@
         }
         
         .collapsible-list {
-            max-height: 2000px;
+            max-height: 5000px;
             overflow: hidden;
             transition: max-height 0.35s ease-in-out;
         }
@@ -955,13 +982,32 @@
                     localStorage.setItem('discord_theme', 'default');
                 }
             }
+            
+            _toggleCollapsible(listElement, isCollapsing) {
+                if (!listElement) return;
+
+                if (isCollapsing) {
+                    listElement.style.maxHeight = listElement.scrollHeight + 'px';
+                    requestAnimationFrame(() => {
+                        listElement.classList.add('collapsed');
+                        listElement.style.maxHeight = '0px';
+                    });
+                } else {
+                    listElement.classList.remove('collapsed');
+                    listElement.style.maxHeight = listElement.scrollHeight + 'px';
+                    listElement.addEventListener('transitionend', () => {
+                        listElement.style.maxHeight = null;
+                    }, { once: true });
+                }
+            }
+
 
             toggleDmCollapse() {
                 this.isDmCollapsed = !this.isDmCollapsed;
                 const list = document.getElementById('dm-list');
                 const icon = document.querySelector('[data-section="dm"] .collapse-icon');
                 if (list && icon) {
-                    list.classList.toggle('collapsed', this.isDmCollapsed);
+                    this._toggleCollapsible(list, this.isDmCollapsed);
                     icon.classList.toggle('collapsed', this.isDmCollapsed);
                 }
             }
@@ -970,7 +1016,7 @@
                 const list = document.getElementById('admin-server-list');
                 const icon = document.querySelector('[data-section="admin"] .collapse-icon');
                 if (list && icon) {
-                    list.classList.toggle('collapsed', this.isAdminServersCollapsed);
+                    this._toggleCollapsible(list, this.isAdminServersCollapsed);
                     icon.classList.toggle('collapsed', this.isAdminServersCollapsed);
                 }
             }
@@ -979,9 +1025,42 @@
                 const list = document.getElementById('other-server-list');
                 const icon = document.querySelector('[data-section="other"] .collapse-icon');
                 if (list && icon) {
-                    list.classList.toggle('collapsed', this.isOtherServersCollapsed);
+                    this._toggleCollapsible(list, this.isOtherServersCollapsed);
                     icon.classList.toggle('collapsed', this.isOtherServersCollapsed);
                 }
+            }
+
+            _renderChannelListHtml(channels) {
+                if (!channels) return '';
+                const categories = channels.filter(c => c.type === 4);
+                let html = '';
+
+                const renderChannelItem = (channel) => {
+                    const icon = channel.type === 2 ? '🔊' : '#';
+                    const clickHandler = `onclick="client.selectChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')}, 'server_channel')"`;
+                    const itemClass = `channel-item ${this.selectedChannel?.id === channel.id ? 'active' : ''} ${channel.type === 2 ? 'voice-channel' : ''}`;
+                    
+                    return `
+                        <div class="${itemClass}" ${clickHandler}>
+                            <span class="channel-name"><span class="channel-icon">${icon}</span> ${channel.name}</span>
+                        </div>
+                    `;
+                };
+
+                const channelsWithoutCategory = channels.filter(c => !c.parent_id && (c.type === 0 || c.type === 2 || c.type === 5));
+                channelsWithoutCategory.forEach(channel => {
+                    html += renderChannelItem(channel);
+                });
+
+                categories.forEach(category => {
+                    html += `<div class="category-header">${category.name}</div>`;
+                    const channelsInCategory = channels.filter(c => c.parent_id === category.id && (c.type === 0 || c.type === 2 || c.type === 5));
+                    channelsInCategory.forEach(channel => {
+                        html += renderChannelItem(channel);
+                    });
+                });
+
+                return html;
             }
             
             renderSidebarContent() {
@@ -1016,11 +1095,7 @@
                             </div>
                             <div id="${channelListId}" class="${channelListClass}">
                                 <div>
-                                ${(this.serverChannelsCache[server.id] || []).map(channel => `
-                                    <div class="channel-item ${this.selectedChannel?.id === channel.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')}, 'server_channel')">
-                                        <span class="channel-name"># ${channel.name}</span>
-                                    </div>
-                                `).join('')}
+                                    ${this._renderChannelListHtml(this.serverChannelsCache[server.id])}
                                 </div>
                             </div>
                         </div>
@@ -1222,14 +1297,29 @@
                 } catch (e) { console.error('サーバー取得エラー:', e); }
             }
             
-            async fetchServerChannels(serverId) { if (this.serverChannelsCache[serverId]) return; try { const res = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } }); if (res.ok) this.serverChannelsCache[serverId] = (await res.json()).filter(ch => ch.type === 0 || ch.type === 5); } catch (e) { console.error(`サーバー[${serverId}]のチャンネル取得エラー:`, e); } }
+            async fetchServerChannels(serverId) { 
+                if (this.serverChannelsCache[serverId]) return; 
+                try { 
+                    const res = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } }); 
+                    if (res.ok) {
+                        let channels = await res.json();
+                        this.serverChannelsCache[serverId] = channels
+                            .filter(ch => ch.type === 0 || ch.type === 2 || ch.type === 5 || ch.type === 4) 
+                            .sort((a, b) => a.position - b.position);
+                    } 
+                } catch (e) { 
+                    console.error(`サーバー[${serverId}]のチャンネル取得エラー:`, e); 
+                } 
+            }
             
             async toggleServer(serverId) {
+                const item = document.getElementById(`server-item-${serverId}`);
+                const list = document.getElementById(`channel-list-${serverId}`);
+                if (!item || !list) return;
+
                 if (this.expandedServers.has(serverId)) {
                     this.expandedServers.delete(serverId);
-                    const list = document.getElementById(`channel-list-${serverId}`);
-                    const item = document.getElementById(`server-item-${serverId}`);
-                    if (list) list.classList.add('collapsed');
+                    this._toggleCollapsible(list, true);
                     if (item) {
                         item.classList.remove('active');
                         item.querySelector('.status').textContent = '▼ 開く';
@@ -1240,19 +1330,19 @@
                         await this.fetchServerChannels(serverId);
                         const listContent = document.querySelector(`#channel-list-${serverId} > div`);
                         if (listContent) {
-                            listContent.innerHTML = (this.serverChannelsCache[serverId] || []).map(channel => `
-                                <div class="channel-item ${this.selectedChannel?.id === channel.id ? 'active' : ''}" onclick="client.selectChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')}, 'server_channel')">
-                                    <span class="channel-name"># ${channel.name}</span>
-                                </div>
-                            `).join('');
+                            listContent.innerHTML = this._renderChannelListHtml(this.serverChannelsCache[serverId]);
                         }
                     }
-                    const list = document.getElementById(`channel-list-${serverId}`);
-                    const item = document.getElementById(`server-item-${serverId}`);
-                    if (list) list.classList.remove('collapsed');
+                    setTimeout(() => {
+                        this._toggleCollapsible(list, false);
+                    }, 10);
+                    
                     if (item) {
                         item.classList.add('active');
                         item.querySelector('.status').textContent = '▲ 閉じる';
+                        setTimeout(() => {
+                            item.parentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }, 350); 
                     }
                 }
             }
