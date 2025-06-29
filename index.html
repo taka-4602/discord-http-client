@@ -252,7 +252,6 @@
             font-weight: 500;
         }
 
-
         .avatar {
             width: 32px;
             height: 32px;
@@ -595,6 +594,81 @@
             cursor: not-allowed;
         }
 
+        .file-input-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.15s ease, color 0.15s ease;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-input-btn:hover {
+            background-color: var(--button-secondary-bg);
+            color: var(--text-primary);
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        .image-preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: var(--background-tertiary);
+            border-radius: 4px;
+        }
+
+        .image-preview {
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-preview img {
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .image-preview-remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message-image {
+            max-width: 400px;
+            max-height: 300px;
+            border-radius: 4px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .message-image:hover {
+            transform: scale(1.02);
+        }
+
         .loading-inline {
             text-align: center;
             padding: 10px;
@@ -697,7 +771,6 @@
             border-radius: 4px;
         }
 
-
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -790,7 +863,6 @@
         .collapsible-list.collapsed {
             max-height: 0;
         }
-
 
         .context-menu {
             position: absolute;
@@ -944,6 +1016,8 @@
                 this.scrollToBottomOnNextRender = false;
                 this.isAnimatingChatIn = false;
                 this.isAnimatingChatOut = false;
+                this.selectedFiles = [];
+                this.replyingTo = null;
                 
                 this.theme = 'default';
                 this.loadTheme();
@@ -1000,7 +1074,6 @@
                     }, { once: true });
                 }
             }
-
 
             toggleDmCollapse() {
                 this.isDmCollapsed = !this.isDmCollapsed;
@@ -1142,8 +1215,26 @@
                 `;
             }
             
-            loadCacheFromStorage() { try { const m = localStorage.getItem('discord_message_cache'); const u = localStorage.getItem('discord_user_cache'); if (m) this.messageCache = JSON.parse(m); if (u) this.userCache = JSON.parse(u); } catch (e) { console.error('キャッシュ読み込みエラー:', e); } }
-            saveCacheToStorage() { try { localStorage.setItem('discord_message_cache', JSON.stringify(this.messageCache)); localStorage.setItem('discord_user_cache', JSON.stringify(this.userCache)); } catch (e) { console.error('キャッシュ保存エラー:', e); } }
+            loadCacheFromStorage() { 
+                try { 
+                    const m = localStorage.getItem('discord_message_cache'); 
+                    const u = localStorage.getItem('discord_user_cache'); 
+                    if (m) this.messageCache = JSON.parse(m); 
+                    if (u) this.userCache = JSON.parse(u); 
+                } catch (e) { 
+                    console.error('キャッシュ読み込みエラー:', e); 
+                } 
+            }
+            
+            saveCacheToStorage() { 
+                try { 
+                    localStorage.setItem('discord_message_cache', JSON.stringify(this.messageCache)); 
+                    localStorage.setItem('discord_user_cache', JSON.stringify(this.userCache)); 
+                } catch (e) { 
+                    console.error('キャッシュ保存エラー:', e); 
+                } 
+            }
+            
             clearCache() { 
                 const messageBox = document.getElementById('customMessageBox');
                 const messageText = document.getElementById('messageBoxText');
@@ -1152,7 +1243,12 @@
 
                 messageText.textContent = 'すべてのキャッシュ済みデータを削除しますか？';
                 confirmBtn.onclick = () => {
-                    this.messageCache = {}; this.userCache = {}; localStorage.removeItem('discord_message_cache'); localStorage.removeItem('discord_user_cache'); if (this.selectedChannel) this.messages = []; this.render();
+                    this.messageCache = {}; 
+                    this.userCache = {}; 
+                    localStorage.removeItem('discord_message_cache'); 
+                    localStorage.removeItem('discord_user_cache'); 
+                    if (this.selectedChannel) this.messages = []; 
+                    this.render();
                     messageBox.style.display = 'none';
                 };
                 cancelBtn.onclick = () => {
@@ -1241,7 +1337,13 @@
                 URL.revokeObjectURL(url);
             }
 
-            getCacheSize() { const s = JSON.stringify(this.messageCache).length + JSON.stringify(this.userCache).length; if (s < 1024) return `${s}B`; if (s < 1024 * 1024) return `${(s / 1024).toFixed(1)}KB`; return `${(s / (1024 * 1024)).toFixed(1)}MB`; }
+            getCacheSize() { 
+                const s = JSON.stringify(this.messageCache).length + JSON.stringify(this.userCache).length; 
+                if (s < 1024) return `${s}B`; 
+                if (s < 1024 * 1024) return `${(s / 1024).toFixed(1)}KB`; 
+                return `${(s / (1024 * 1024)).toFixed(1)}MB`; 
+            }
+            
             saveMessagesToCache(channelId, messages) { 
                 const k = `${channelId}`; 
                 const existingMessages = this.messageCache[k] || []; 
@@ -1253,29 +1355,63 @@
                 this.messageCache[k] = Array.from(m.values()).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); 
                 this.saveCacheToStorage(); 
             }
-            loadMessagesFromCache(channelId) { return this.messageCache[`${channelId}`] || []; }
+            
+            loadMessagesFromCache(channelId) { 
+                return this.messageCache[`${channelId}`] || []; 
+            }
 
-            getAvatarUrl(user, size = 512) { return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=${size}` : null; }
-            getServerIconUrl(server, size = 512) { return server?.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.webp?size=${size}` : null; }
-            renderAvatar(user, size = 512) { const url = this.getAvatarUrl(user, size); return url ? `<img src="${url}" alt="${user?.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(user?.username)}</span>` : `<span>${this.getInitials(user?.username)}</span>`; }
-            renderServerIcon(server, size = 512) { const url = this.getServerIconUrl(server, size); return url ? `<img src="${url}" alt="${server.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(server.name)}</span>` : `<span>${this.getInitials(server.name)}</span>`; }
+            getAvatarUrl(user, size = 512) { 
+                return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.webp?size=${size}` : null; 
+            }
+            
+            getServerIconUrl(server, size = 512) { 
+                return server?.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.webp?size=${size}` : null; 
+            }
+            
+            renderAvatar(user, size = 512) { 
+                const url = this.getAvatarUrl(user, size); 
+                return url ? `<img src="${url}" alt="${user?.username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(user?.username)}</span>` : `<span>${this.getInitials(user?.username)}</span>`; 
+            }
+            
+            renderServerIcon(server, size = 512) { 
+                const url = this.getServerIconUrl(server, size); 
+                return url ? `<img src="${url}" alt="${server.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display: none;">${this.getInitials(server.name)}</span>` : `<span>${this.getInitials(server.name)}</span>`; 
+            }
 
             async authenticate(token) {
-                this.isLoading = true; this.error = null; this.render();
+                this.isLoading = true; 
+                this.error = null; 
+                this.render();
                 try {
-                    const res = await fetch('https://discord.com/api/v9/users/@me', { headers: { 'Authorization': token, 'Content-Type': 'application/json' } });
+                    const res = await fetch('https://discord.com/api/v9/users/@me', { 
+                        headers: { 
+                            'Authorization': token, 
+                            'Content-Type': 'application/json' 
+                        } 
+                    });
                     if (!res.ok) {
                         const errData = await res.json();
                         throw new Error(errData.message || '認証に失敗しました。トークンを確認してください。');
                     }
-                    this.user = await res.json(); this.token = token;
+                    this.user = await res.json(); 
+                    this.token = token;
                     await Promise.all([this.fetchDMs(), this.fetchServers()]);
-                } catch (e) { this.error = e.message; } finally { this.isLoading = false; this.render(); }
+                } catch (e) { 
+                    this.error = e.message; 
+                } finally { 
+                    this.isLoading = false; 
+                    this.render(); 
+                }
             }
 
             async fetchDMs() {
                 try {
-                    const res = await fetch('https://discord.com/api/v9/users/@me/channels', { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } });
+                    const res = await fetch('https://discord.com/api/v9/users/@me/channels', { 
+                        headers: { 
+                            'Authorization': this.token, 
+                            'Content-Type': 'application/json' 
+                        } 
+                    });
                     if (res.ok) {
                         const channels = await res.json();
                         channels.sort((a, b) => {
@@ -1292,15 +1428,27 @@
             
             async fetchServers() {
                 try {
-                    const res = await fetch('https://discord.com/api/v9/users/@me/guilds', { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } });
+                    const res = await fetch('https://discord.com/api/v9/users/@me/guilds', { 
+                        headers: { 
+                            'Authorization': this.token, 
+                            'Content-Type': 'application/json' 
+                        } 
+                    });
                     if (res.ok) this.servers = await res.json();
-                } catch (e) { console.error('サーバー取得エラー:', e); }
+                } catch (e) { 
+                    console.error('サーバー取得エラー:', e); 
+                }
             }
             
             async fetchServerChannels(serverId) { 
                 if (this.serverChannelsCache[serverId]) return; 
                 try { 
-                    const res = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } }); 
+                    const res = await fetch(`https://discord.com/api/v9/guilds/${serverId}/channels`, { 
+                        headers: { 
+                            'Authorization': this.token, 
+                            'Content-Type': 'application/json' 
+                        } 
+                    }); 
                     if (res.ok) {
                         let channels = await res.json();
                         this.serverChannelsCache[serverId] = channels
@@ -1349,10 +1497,18 @@
 
             async fetchMessages(channelId, { beforeId = null } = {}) {
                 const stateKey = beforeId ? 'isFetchingOlder' : 'isLoading';
-                if (this[stateKey]) return; this[stateKey] = true; this.error = null; this.render();
+                if (this[stateKey]) return; 
+                this[stateKey] = true; 
+                this.error = null; 
+                this.render();
                 try {
                     const url = `https://discord.com/api/v9/channels/${channelId}/messages?limit=100${beforeId ? `&before=${beforeId}` : ''}`;
-                    const res = await fetch(url, { headers: { 'Authorization': this.token, 'Content-Type': 'application/json' } });
+                    const res = await fetch(url, { 
+                        headers: { 
+                            'Authorization': this.token, 
+                            'Content-Type': 'application/json' 
+                        } 
+                    });
                     if (res.ok) {
                         const newMessages = await res.json();
                         if (newMessages.length > 0) { 
@@ -1369,12 +1525,24 @@
                                 this.scrollToBottomOnNextRender = true;
                             }
                         } 
-                        else if (beforeId) { const btn = document.getElementById('loadMoreBtn'); if (btn) { btn.innerText = 'これ以上ありません'; btn.disabled = true; } }
+                        else if (beforeId) { 
+                            const btn = document.getElementById('loadMoreBtn'); 
+                            if (btn) { 
+                                btn.innerText = 'これ以上ありません'; 
+                                btn.disabled = true; 
+                            } 
+                        }
                     } else {
                         const errData = await res.json();
                         throw new Error(errData.message || 'メッセージの取得に失敗しました');
                     }
-                } catch (e) { this.error = e.message; console.error('メッセージ取得エラー:', e); } finally { this[stateKey] = false; this.render(); }
+                } catch (e) { 
+                    this.error = e.message; 
+                    console.error('メッセージ取得エラー:', e); 
+                } finally { 
+                    this[stateKey] = false; 
+                    this.render(); 
+                }
             }
             
             selectChannel(channel, type) { 
@@ -1386,6 +1554,8 @@
                 this.recentlyAddedMessageIds.clear();
                 this.scrollToBottomOnNextRender = true;
                 this.isAnimatingChatIn = true;
+                this.selectedFiles = [];
+                this.replyingTo = null;
 
                 if (this.messages.length === 0) { 
                     this.fetchMessages(channel.id); 
@@ -1404,32 +1574,77 @@
                     setTimeout(() => {
                         this.selectedChannel = null;
                         this.isAnimatingChatOut = false;
+                        this.selectedFiles = [];
+                        this.replyingTo = null;
                         this.render();
                     }, 90); 
                 } else {
                      this.selectedChannel = null;
+                     this.selectedFiles = [];
+                     this.replyingTo = null;
                      this.render();
                 }
             }
-            
+
+            handleFileSelect(event) {
+                const files = Array.from(event.target.files);
+                const imageFiles = files.filter(file => file.type.startsWith('image/'));
+                
+                if (imageFiles.length === 0) {
+                    this.showCustomMessageBox('エラー', '画像ファイルのみアップロード可能です。');
+                    return;
+                }
+
+                const maxSize = 50 * 1024 * 1024;
+                const oversizedFiles = imageFiles.filter(file => file.size > maxSize);
+                if (oversizedFiles.length > 0) {
+                    this.showCustomMessageBox('エラー', 'ファイルサイズは50MB以下にしてください。');
+                    return;
+                }
+
+                this.selectedFiles = [...this.selectedFiles, ...imageFiles];
+                this.render();
+                
+                event.target.value = '';
+            }
+
+            removeSelectedFile(index) {
+                this.selectedFiles.splice(index, 1);
+                this.render();
+            }
+
             async sendMessage(channelId, content, messageReference = null) {
-                if (!content.trim() || this.isSending) return;
+                if ((!content.trim() && this.selectedFiles.length === 0) || this.isSending) return;
+                
                 this.isSending = true;
                 this.render();
 
-                const payload = { content: content };
-                if (messageReference) {
-                    payload.message_reference = { message_id: messageReference };
-                }
-
                 try {
-                    const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, { method: 'POST', headers: { 'Authorization': this.token, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.message || '送信に失敗');
+                    if (this.selectedFiles.length > 0) {
+                        await this.sendMessageWithFiles(channelId, content, this.selectedFiles, messageReference);
+                    } else {
+                        const payload = { content: content };
+                        if (messageReference) {
+                            payload.message_reference = { message_id: messageReference };
+                        }
+
+                        const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, { 
+                            method: 'POST', 
+                            headers: { 
+                                'Authorization': this.token, 
+                                'Content-Type': 'application/json' 
+                            }, 
+                            body: JSON.stringify(payload) 
+                        });
+                        
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.message || '送信に失敗');
+                        }
                     }
                     
                     document.getElementById('messageInput').value = '';
+                    this.selectedFiles = [];
                     this.replyingTo = null;
                     this.scrollToBottomOnNextRender = true;
                     this.render();
@@ -1444,6 +1659,37 @@
                 } finally {
                     this.isSending = false;
                     this.render();
+                }
+            }
+
+            async sendMessageWithFiles(channelId, content, files, messageReference = null) {
+                const formData = new FormData();
+                
+                const payload = {};
+                if (content.trim()) {
+                    payload.content = content;
+                }
+                if (messageReference) {
+                    payload.message_reference = { message_id: messageReference };
+                }
+                
+                formData.append('payload_json', JSON.stringify(payload));
+                
+                files.forEach((file, index) => {
+                    formData.append(`files[${index}]`, file);
+                });
+
+                const res = await fetch(`https://discord.com/api/v9/channels/${channelId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': this.token
+                    },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.message || 'ファイル送信に失敗');
                 }
             }
 
@@ -1487,7 +1733,6 @@
                             'Authorization': this.token,
                             'Content-Type': 'application/json'
                         },
-
                         body: JSON.stringify({
                             max_age: 604800,
                             max_uses: 0,
@@ -1565,8 +1810,19 @@
                 messageBox.style.display = 'flex';
             }
 
-            getInitials(name) { return name ? name.split(/[\s_-]/).map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'; }
-            formatTimestamp(timestamp) { return new Date(timestamp).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+            getInitials(name) { 
+                return name ? name.split(/[\s_-]/).map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'; 
+            }
+            
+            formatTimestamp(timestamp) { 
+                return new Date(timestamp).toLocaleString('ja-JP', { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                }); 
+            }
             
             exportMessages() { 
                 if (!this.selectedChannel) return; 
@@ -1575,13 +1831,20 @@
                     this.showCustomMessageBox('エクスポートエラー', 'エクスポートするメッセージがありません。');
                     return;
                 } 
-                const data = { channel: this.selectedChannel, messages: m, exportDate: new Date().toISOString(), totalMessages: m.length }; 
+                const data = { 
+                    channel: this.selectedChannel, 
+                    messages: m, 
+                    exportDate: new Date().toISOString(), 
+                    totalMessages: m.length 
+                }; 
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); 
                 const url = URL.createObjectURL(blob); 
-                const a = document.createElement('a'); a.href = url; 
+                const a = document.createElement('a'); 
+                a.href = url; 
                 const name = (this.selectedChannel.type === 'dm' ? this.selectedChannel.recipients?.[0]?.username : this.selectedChannel.name) || 'unknown'; 
                 a.download = `discord_log-${name.replace(/[^a-zA-Z0-9]/g, '_')}-${this.selectedChannel.id}.json`; 
-                a.click(); URL.revokeObjectURL(url); 
+                a.click(); 
+                URL.revokeObjectURL(url); 
             }
             
             renderMessageBody(message) {
@@ -1622,11 +1885,13 @@
                 }
 
                 if (message.attachments && message.attachments.length > 0) {
-                    const attachmentsHtml = message.attachments.map(att => `
-                        <a href="${att.url}" target="_blank" rel="noopener noreferrer" class="attachment-link">
-                            📎 ${att.filename} (${(att.size / 1024).toFixed(1)} KB)
-                        </a>
-                    `).join('');
+                    const attachmentsHtml = message.attachments.map(att => {
+                        if (att.content_type && att.content_type.startsWith('image/')) {
+                            return `<img src="${att.url}" alt="${att.filename}" class="message-image" onclick="window.open('${att.url}', '_blank')" loading="lazy">`;
+                        } else {
+                            return `<a href="${att.url}" target="_blank" rel="noopener noreferrer" class="attachment-link">📎 ${att.filename} (${(att.size / 1024).toFixed(1)} KB)</a>`;
+                        }
+                    }).join('');
                     parts.push(`<div class="attachments-container">${attachmentsHtml}</div>`);
                 }
 
@@ -1682,8 +1947,31 @@
                     </div>
                 `;
 
-                document.getElementById('app').innerHTML = `<div class="login-screen"><div class="login-form"><h1 class="login-title">Discord HTTP クライアント</h1><p class="login-subtitle">ユーザートークンでログイン</p><div class="login-warning"><strong>自己責任！</strong></div><form id="loginForm"><div class="form-group"><label class="form-label" for="token">トークン</label><input type="text" id="token" class="form-input" placeholder="トークンを入力..." required></div><button type="submit" class="btn" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? 'ログイン中...' : 'ログイン'}</button></form></div></div>${messageBoxHtml}`;
-                document.getElementById('loginForm').addEventListener('submit', e => { e.preventDefault(); const t = document.getElementById('token').value.trim(); if (t) client.authenticate(t); });
+                document.getElementById('app').innerHTML = `
+                    <div class="login-screen">
+                        <div class="login-form">
+                            <h1 class="login-title">Discord HTTP クライアント</h1>
+                            <p class="login-subtitle">ユーザートークンでログイン</p>
+                            <div class="login-warning"><strong>自己責任！</strong></div>
+                            <form id="loginForm">
+                                <div class="form-group">
+                                    <label class="form-label" for="token">トークン</label>
+                                    <input type="text" id="token" class="form-input" placeholder="トークンを入力..." required>
+                                </div>
+                                <button type="submit" class="btn" ${this.isLoading ? 'disabled' : ''}>
+                                    ${this.isLoading ? 'ログイン中...' : 'ログイン'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    ${messageBoxHtml}
+                `;
+                
+                document.getElementById('loginForm').addEventListener('submit', e => { 
+                    e.preventDefault(); 
+                    const t = document.getElementById('token').value.trim(); 
+                    if (t) client.authenticate(t); 
+                });
             }
 
             renderMainScreen() {
@@ -1710,22 +1998,27 @@
                     </div>
                 `;
 
-                 document.getElementById('app').innerHTML = `<div class="${containerClass}">
-                    <div class="sidebar" style="width: ${sidebarWidth};">
-                        <div class="sidebar-header"><div class="sidebar-title">${displayNameFull}</div></div>
-                        <div class="sidebar-content">${this.renderSidebarContent()}</div>
-                        <div class="cache-info">
-                            <span class="cache-status">キャッシュ: ${this.getCacheSize()}</span>
-                            <div class="cache-actions">
-                                <button onclick="client.toggleTheme()" title="AMOLED Darkテーマに切り替え">AMOLED Dark</button>
-                                <button onclick="client.exportAllCache()" title="すべてのキャッシュをjsonとして保存します">キャッシュを保存</button>
-                                <button onclick="client.clearCache()">キャッシュを削除</button>
+                 document.getElementById('app').innerHTML = `
+                    <div class="${containerClass}">
+                        <div class="sidebar" style="width: ${sidebarWidth};">
+                            <div class="sidebar-header">
+                                <div class="sidebar-title">${displayNameFull}</div>
+                            </div>
+                            <div class="sidebar-content">${this.renderSidebarContent()}</div>
+                            <div class="cache-info">
+                                <span class="cache-status">キャッシュ: ${this.getCacheSize()}</span>
+                                <div class="cache-actions">
+                                    <button onclick="client.toggleTheme()" title="AMOLED Darkテーマに切り替え">AMOLED Dark</button>
+                                    <button onclick="client.exportAllCache()" title="すべてのキャッシュをjsonとして保存します">キャッシュを保存</button>
+                                    <button onclick="client.clearCache()">キャッシュを削除</button>
+                                </div>
                             </div>
                         </div>
+                        <div class="resizer" id="dragHandle"></div>
+                        <div class="main-content">${this.renderChatArea()}</div>
                     </div>
-                    <div class="resizer" id="dragHandle"></div>
-                    <div class="main-content">${this.renderChatArea()}</div>
-                </div>${messageBoxHtml}`;
+                    ${messageBoxHtml}
+                `;
             }
 
             renderChatArea() {
@@ -1757,9 +2050,20 @@
 
                 const replyingToHTML = this.replyingTo ? `<div style="background-color: rgba(90, 92, 99, 0.2); padding: 8px 12px; border-left: 4px solid var(--button-primary-bg); border-top-left-radius: 4px; border-top-right-radius: 4px; margin-bottom: -8px; display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 13px;"><span><strong style="color: var(--header-primary);">返信先: </strong> ${this.replyingTo.author.global_name || this.replyingTo.author.username}: ${this.replyingTo.content ? (this.replyingTo.content.length > 50 ? this.replyingTo.content.substring(0, 50) + '...' : this.replyingTo.content) : '添付ファイルまたは埋め込み'}</span><button onclick="client.cancelReply()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0;">&times;</button></div>` : '';
 
+                const imagePreviewHTML = this.selectedFiles.length > 0 ? `
+                    <div class="image-preview-container">
+                        ${this.selectedFiles.map((file, index) => `
+                            <div class="image-preview">
+                                <img src="${URL.createObjectURL(file)}" alt="${file.name}">
+                                <button class="image-preview-remove" onclick="client.removeSelectedFile(${index})">&times;</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '';
+
                 const chatHeaderHTML = `<div class="chat-header"><button class="back-btn" onclick="client.unselectChannel()">←</button><div class="chat-title"># ${channelName}</div><div class="chat-header-actions">${inviteButtonHTML}<button class="btn btn-secondary btn-header" onclick="client.fetchMessages('${this.selectedChannel.id}')" ${this.isLoading ? 'disabled' : ''}>${this.isLoading ? '読込中' : '🔄 更新'}</button><button class="btn btn-header" onclick="client.exportMessages()">エクスポート</button></div></div>`;
                 const chatMessagesWrapperHTML = `<div class="chat-messages" id="chat-messages">${chatContentHTML}</div>`;
-                const chatInputAreaHTML = `<div class="chat-input-area">${replyingToHTML}<form id="sendMessageForm"><input type="text" id="messageInput" class="message-input" placeholder="#${channelName} へメッセージを送信" autocomplete="off" ${this.isSending ? 'disabled' : ''} required><button type="submit" id="sendBtn" class="send-btn" ${this.isSending ? 'disabled' : ''}>${this.isSending ? '送信中...' : '送信'}</button></form></div>`;
+                const chatInputAreaHTML = `<div class="chat-input-area">${replyingToHTML}${imagePreviewHTML}<form id="sendMessageForm"><button type="button" class="file-input-btn" onclick="document.getElementById('fileInput').click()">📎</button><input type="file" id="fileInput" class="file-input-hidden" multiple accept="image/*"><input type="text" id="messageInput" class="message-input" placeholder="#${channelName} へメッセージを送信" autocomplete="off" ${this.isSending ? 'disabled' : ''}><button type="submit" id="sendBtn" class="send-btn" ${this.isSending ? 'disabled' : ''}>${this.isSending ? '送信中...' : '送信'}</button></form></div>`;
 
                 return `<div class="chat-area-wrapper ${animationClass}">${chatHeaderHTML}${chatMessagesWrapperHTML}${chatInputAreaHTML}</div>`;
             }
@@ -1776,6 +2080,7 @@
                     this.renderMainScreen();
                     this.initSidebarResizing();
                     this.initMessageContextMenu();
+                    this.initFileInput();
                 } else {
                     this.renderLoginScreen();
                 }
@@ -1808,6 +2113,13 @@
 
                 if (this.recentlyAddedMessageIds.size > 0) {
                     setTimeout(() => { this.recentlyAddedMessageIds.clear(); }, 300);
+                }
+            }
+
+            initFileInput() {
+                const fileInput = document.getElementById('fileInput');
+                if (fileInput) {
+                    fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
                 }
             }
             
